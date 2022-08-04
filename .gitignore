@@ -1,0 +1,5 @@
+/*
+/*/
+/kern/compile/
+!/kern/
+!.gitignore
