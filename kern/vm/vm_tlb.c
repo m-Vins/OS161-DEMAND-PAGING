@@ -18,7 +18,7 @@ void tlb_invalidate(void) {
     splx(spl);
 }
 
-void tlp_insert(vaddr_t vaddr, paddr_t paddr, bool ro) {
+void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro) {
     int spl;
     uint32_t ehi, elo;
 
