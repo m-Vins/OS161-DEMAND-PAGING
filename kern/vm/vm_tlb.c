@@ -1,7 +1,8 @@
 #include <vm_tlb.h>
-#include <tlb.h>
+#include <mips/tlb.h>
 #include <spl.h>
 #include <vm.h>
+#include <lib.h>
 
 int victim = 0;
 
