@@ -1,6 +1,6 @@
+#include <swapfile.h>
 #include <bitmap.h>
 #include <kern/fcntl.h>
-#include <swapfile.h>
 #include <uio.h>
 #include <vfs.h>
 #include <vm.h>
@@ -17,8 +17,10 @@ void swap_init(void)
     int err;
     char swapfile_name[16];
 
+    KASSERT(SWAPFILE_SIZE % PAGE_SIZE == 0);
+
     strcpy(swapfile_name, SWAPFILE_NAME);
-    err = vfs_open(SWAPFILE_NAME, O_RDWR | O_CREAT, 0, &swapfile);
+    err = vfs_open(swapfile_name, O_RDWR | O_CREAT, 0, &swapfile);
     if (err)
     {
         panic("Cannot open SWAPFILE");
@@ -36,10 +38,10 @@ void swap_in(paddr_t page_paddr, unsigned int swap_index)
     struct iovec iov;
     struct uio ku;
 
-    if (!bitmap_isset(swapmap, swap_index))
-    {
-        panic("Reading empty section in SWAPFILE\n");
-    }
+    KASSERT(swap_active);
+    KASSERT(page_paddr % PAGE_SIZE == 0);
+    KASSERT(swap_index < SWAPFILE_SIZE / PAGE_SIZE);
+    KASSERT(bitmap_isset(swapmap, swap_index));
 
     swap_offset = swap_index * PAGE_SIZE;
 
@@ -60,6 +62,9 @@ unsigned int swap_out(paddr_t page_paddr)
     off_t swap_offset;
     struct iovec iov;
     struct uio ku;
+
+    KASSERT(swap_active);
+    KASSERT(page_paddr % PAGE_SIZE == 0);
 
     err = bitmap_alloc(swapmap, &swap_index);
     if (err)
