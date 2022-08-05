@@ -445,3 +445,12 @@ file		test/semunit.c
 file		test/kmalloctest.c
 file		test/fstest.c
 optfile net	test/nettest.c
+
+########################################
+#                                      #
+#              Assignment              #
+#                                      #
+########################################
+
+defoption rudevm
+optfile   rudevm    vm/vm_tlb.c
