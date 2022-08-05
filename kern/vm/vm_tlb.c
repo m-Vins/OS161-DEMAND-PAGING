@@ -6,24 +6,27 @@
 
 int victim = 0;
 
-void tlb_invalidate(void) {
+void tlb_invalidate(void)
+{
     int spl, i;
 
     /* Disable interrupts on this CPU while frobbing the TLB. */
     spl = splhigh();
 
-    for (i=0; i<NUM_TLB; i++) {
+    for (i = 0; i < NUM_TLB; i++)
+    {
         tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
     }
 
     splx(spl);
 }
 
-void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro) {
+void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro)
+{
     int spl;
     uint32_t ehi, elo;
 
-    /* make sure it's page-aligned */
+    /* Make sure it's page-aligned */
     KASSERT((paddr & PAGE_FRAME) == paddr);
 
     /* Disable interrupts on this CPU while frobbing the TLB. */
@@ -31,7 +34,7 @@ void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro) {
 
     ehi = vaddr;
     elo = paddr | TLBLO_VALID;
-    if(!ro)
+    if (!ro)
     {
         elo = elo | TLBLO_DIRTY;
     }
