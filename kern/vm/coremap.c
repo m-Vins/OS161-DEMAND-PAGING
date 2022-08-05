@@ -194,8 +194,7 @@ free_kpages(vaddr_t addr){
 
 /**
  * @brief allocate a page for the user. 
- * It is different from the alloc_kpage as it allocate one frame at a time and
- * has to manage the victim selection.
+ * It is different from the alloc_kpage as it allocate one frame at a time .
  * 
  * @return vaddr_t the virtual address of the allocated frame
  */

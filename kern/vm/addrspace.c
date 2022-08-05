@@ -180,3 +180,10 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 	return 0;
 }
 
+// static
+// void
+// as_zero_region(paddr_t paddr, unsigned npages)
+// {
+// 	bzero((void *)PADDR_TO_KVADDR(paddr), npages * PAGE_SIZE);
+// }
+
