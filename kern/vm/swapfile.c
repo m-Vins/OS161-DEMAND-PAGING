@@ -69,7 +69,7 @@ unsigned int swap_out(paddr_t page_paddr)
     err = bitmap_alloc(swapmap, &swap_index);
     if (err)
     {
-        panic("SWAPFILE is full\n");
+        panic("Out of swap space\n");
     }
 
     swap_offset = swap_index * PAGE_SIZE;
