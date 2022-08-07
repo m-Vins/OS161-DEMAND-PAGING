@@ -43,3 +43,12 @@ void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro)
 
     splx(spl);
 }
+
+void tlb_remove(vaddr_t vaddr)
+{
+    int index;
+
+    index = tlb_probe(vaddr, 0);
+    if (index >= 0)
+        tlb_write(TLBHI_INVALID(index), TLBLO_INVALID(), index);
+}

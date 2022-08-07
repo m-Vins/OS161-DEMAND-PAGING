@@ -11,5 +11,6 @@
  */
 void tlb_invalidate(void);
 void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro);
+void tlb_remove(vaddr_t vaddr);
 
 #endif /* _VM_TLB_H_ */
