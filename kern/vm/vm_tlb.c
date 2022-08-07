@@ -4,7 +4,7 @@
 #include <vm.h>
 #include <lib.h>
 
-int victim = 0;
+int tlb_victim = 0;
 
 void tlb_invalidate(void)
 {
@@ -38,8 +38,8 @@ void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro)
     {
         elo = elo | TLBLO_DIRTY;
     }
-    tlb_write(ehi, elo, victim);
-    victim = (victim + 1) % NUM_TLB;
+    tlb_write(ehi, elo, tlb_victim);
+    tlb_victim = (tlb_victim + 1) % NUM_TLB;
 
     splx(spl);
 }
