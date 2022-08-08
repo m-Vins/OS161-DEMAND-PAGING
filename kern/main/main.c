@@ -50,7 +50,10 @@
 #include <test.h>
 #include <version.h>
 #include "autoconf.h"  // for pseudoconfig
-
+#include "opt-rudevm.h"
+#if OPT_RUDEVM 
+#include <coremap.h>
+#endif
 
 /*
  * These two pieces of data are maintained by the makefiles and build system.
@@ -106,7 +109,11 @@ boot(void)
 	kprintf("\n");
 
 	/* Early initialization. */
+// #if OPT_RUDEVM 
+// 	coremap_bootstrap();
+// #else
 	ram_bootstrap();
+// #endif
 	proc_bootstrap();
 	thread_bootstrap();
 	hardclock_bootstrap();

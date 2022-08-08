@@ -9,15 +9,13 @@
 #include <mips/tlb.h>
 #include <addrspace.h>
 #include <vm.h>
+#include <coremap.h>
 
 
 /* under vm, always have 72k of user stack */
 /* (this must be > 64K so argument blocks of size ARG_MAX will fit) */
 #define VM_STACKPAGES    18
 
-/*
- * Wrap ram_stealmem in a spinlock.
- */
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
 void
@@ -55,8 +53,12 @@ getppages(unsigned long npages)
 	spinlock_acquire(&stealmem_lock);
 
 	addr = ram_stealmem(npages);
+	// addr = coremap_getppages(npages,1);
 
 	spinlock_release(&stealmem_lock);
+	
+	
+
 	return addr;
 }
 
@@ -81,6 +83,26 @@ free_kpages(vaddr_t addr)
 
 	(void)addr;
 }
+
+/**
+ * @brief allocate a page for the user. 
+ * It is different from the alloc_kpage as it allocate one frame at a time .
+ * 
+ * @return vaddr_t the virtual address of the allocated frame
+ */
+// paddr_t 
+// alloc_upage(){
+// 	return 0;
+// }
+
+/**
+ * @brief deallocate the given page for the user.
+ * 
+ * @param addr 
+ */
+// void free_upage(vaddr_t addr){
+//     (void)addr;
+// };
 
 void
 vm_tlbshootdown(const struct tlbshootdown *ts)

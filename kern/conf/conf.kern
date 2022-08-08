@@ -455,5 +455,6 @@ optfile net	test/nettest.c
 defoption rudevm
 optfile   rudevm    vm/vm_tlb.c
 optfile   rudevm    vm/vm.c
-#optfile   rudevm    vm/coremap.c    
+optfile   rudevm    vm/coremap.c    
 optfile   rudevm    vm/swapfile.c
+# do not compile ram.c as it is not used in rudevm

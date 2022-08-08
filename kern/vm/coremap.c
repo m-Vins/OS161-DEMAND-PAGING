@@ -8,208 +8,147 @@
  */
 
 
-#include <spinlock.h>
+#include <types.h>
 #include <vm.h>
 #include <lib.h>
+#include <coremap.h>
+#include <mainbus.h>
+
+vaddr_t firstfree; /* first free virtual address; set by start.S */
 
 
-
-static struct spinlock coremap_lock = SPINLOCK_INITIALIZER;
-static struct spinlock mem_lock = SPINLOCK_INITIALIZER;
-
-static int nRamFrames = 0;
-static unsigned long *allocSize = NULL;
-
-/*NOTE: we can use a bitmap as well, this is just an initial implementation */
-static unsigned char *freeRamFrames = NULL;
-
-char coremapActive = 0;
-
-/**
- * @brief check whether the coremap is active
- * 
- * @return 1 if the coremap is active, 0 if not.
- */
-static int isCoremapActive () {
-  int active;
-  spinlock_acquire(&coremap_lock);
-  active = coremapActive;
-  spinlock_release(&coremap_lock);
-  return active;
-}
+static int nRamFrames = 0; /* number of ram frames */
+struct coremap_entry *coremap;
 
 
 /**
- * @brief activate the coremap, i.e. allocates the data structures and
- * initialize them.
+ * @brief 
  * 
  */
-void coremap_init(){
+void coremap_bootstrap(){
 
-    nRamFrames = ((int)ram_getsize())/PAGE_SIZE;
-    freeRamFrames = kmalloc(sizeof(unsigned char)*nRamFrames);
-    
-    if (freeRamFrames == NULL) return;  
-    
-    allocSize = kmalloc(sizeof(unsigned long)*nRamFrames);
-    
-    if (allocSize == NULL) {    
-        freeRamFrames = NULL; 
-        return;
-    }
+  paddr_t lastpaddr;  /* one past end of last free physical page */
+  size_t coremap_size; /* number of bytes of coremap */
+  int coremap_pages;
+  int i;
 
-    for (i=0; i<nRamFrames; i++) {    
-        freeRamFrames[i] = (unsigned char)0;
-        allocSize[i] = 0;  
-    }
-    spinlock_acquire(&freemem_lock);
-    allocTableActive = 1;
-    spinlock_release(&freemem_lock);
+  /* Get size of RAM. */
+  lastpaddr = mainbus_ramsize();
 
-};
-
-/**
- * @brief deactivate and free coremap.
- * 
- */
-void coremap_destroy(){
-    
-    spinlock_acquire(&coremap_lock);
-    coremapActive = 0;
-    spinlock_release(&coremap_lock);
-    
-    kfree(freeRamFrames);
-    kfree(allocSize);
-}
-
-/**
- * @brief get npages free pages.
- * 
- * @param npages number of pages needed.
- * @return paddr_t the starting physical address.
- */
-static paddr_t 
-getfreeppages(unsigned long npages) {
-  paddr_t addr;	
-  long i, first, found, np = (long)npages;
-
-  if (!isCoremapActive()) return 0; 
-
-  spinlock_acquire(&mem_lock);
-
-  for (i=0, first = found =-1; i<nRamFrames; i++) {
-    if (freeRamFrames[i]) {
-      if (i==0 || !freeRamFrames[i-1]) 
-        first = i; /* set first free in an interval */   
-      if (i-first+1 >= np) {
-        found = first;
-        break;
-      }
-    }
-  }
-	
-  if (found>=0) {
-    for (i=found; i<found+np; i++) {
-      freeRamFrames[i] = (unsigned char)0;
-    }
-    allocSize[found] = np;
-    addr = (paddr_t) found*PAGE_SIZE;
-  }
-  else {
-    addr = 0;
+  /*
+   * This is the same as the last physical address, as long as
+   * we have less than 512 megabytes of memory. If we had more,
+   * we wouldn't be able to access it all through kseg0 and
+   * everything would get a lot more complicated. This is not a
+   * case we are going to worry about.
+   */
+  if (lastpaddr > 512 * 1024 * 1024)
+  {
+    lastpaddr = 512 * 1024 * 1024;
   }
 
-  spinlock_release(&mem_lock);
+  KASSERT(lastpaddr % PAGE_SIZE == 0);
 
-  return addr;
+  nRamFrames = lastpaddr / PAGE_SIZE;
+
+
+  /* Allocates the coremap right in the firstfree address. */
+  coremap = (struct coremap_entry *)firstfree;
+  
+  /* 
+   * Compute the size of the coremap in pages in order to set 
+   * the pages right after firstfree as used.
+   */
+  coremap_size = sizeof(struct coremap_entry) * nRamFrames;
+  coremap_pages = (coremap_size + PAGE_SIZE - 1) / PAGE_SIZE;
+
+  /*  Initialize the coremap. */
+  for (i = 0; i < nRamFrames; i++)
+  {
+    coremap[i].allocSize = 0;
+    coremap[i].used = 0;
+    coremap[i].kernel = 0;
+  }
+
+  /* it is set to 0 as we do not need to free this part of the memory */
+  coremap[0].allocSize = 0; 
+  /* 
+   * Set the initial part of the coremap as used by the kernel.
+   * It contains the exception handlers, the kernel, the coremap and some padding.
+   */
+  for (i = 0; i < coremap_pages + (long)firstfree; i++)
+  {
+    coremap[i].used = 1;
+    coremap[i].kernel = 1;
+  }
+
 }
 
 /**
- * @brief get npages free pages. if there are not enogugh free pages it will 
- * steal memory from the ram.
- * 
- * please note that is is only called by the kernel, since the user can only allocate
- * one page at a time.
- * 
- * @param npages number of pages needed.
- * @return paddr_t the starting physical address.
- */
-static paddr_t
-getppages(unsigned long npages)
-{
-  paddr_t addr;
-
-  /* try freed pages first */
-  addr = getfreeppages(npages);
-  if (addr == 0) {
-    /* call stealmem */
-    spinlock_acquire(&stealmem_lock);
-    addr = ram_stealmem(npages);
-    spinlock_release(&stealmem_lock);
-  }
-  if (addr!=0 && isTableActive()) {
-    spinlock_acquire(&freemem_lock);
-    allocSize[addr/PAGE_SIZE] = npages;
-    spinlock_release(&freemem_lock);
-  } 
-
-  return addr;
-}
-
-
-/**
- * @brief allocate kernel space.
+ * @brief get npages from the ram.
  * 
  * @param npages 
- * @return vaddr_t 
+ * @return paddr_t of the pages, 0 if no pages are available.
  */
-vaddr_t
-alloc_kpages(unsigned npages)
+paddr_t coremap_getppages(int npages, int kernel)
 {
-	paddr_t pa;
+  int end;
+  int beginning;
+  int i;
 
-	dumbvm_can_sleep();
-	pa = getppages(npages);
-	if (pa==0) {
-		return 0;
-	}
-	return PADDR_TO_KVADDR(pa);
-}
 
-/**
- * @brief deallocate kernel space.
- * 
- * @param addr 
- */
-void 
-free_kpages(vaddr_t addr){
-  if (isCoremapActive()) {
-    paddr_t paddr = addr - MIPS_KSEG0;
-    long first = paddr/PAGE_SIZE;	
-    KASSERT(allocSize!=NULL);
-    KASSERT(nRamFrames>first);
-    freeppages(paddr, allocSize[first]);	
+  end = 0;
+  beginning = -1;
+  while (end < nRamFrames)
+  {
+    if (coremap[end].used == 1)
+    {
+      beginning = -1;
+      end += coremap[end].used;
+    }
+    else // frame is free
+    {
+      if (beginning == -1)
+      {
+        beginning = end;
+      }
+      end++;
+
+      if (end - beginning == npages)
+        break;
+    }
   }
+
+  if (beginning == -1 || end - beginning != npages)
+    return 0;
+
+  coremap[beginning].allocSize = npages;
+  for (i = 0; i < npages; i++)
+  {
+    coremap[beginning + i].used = 1;
+    coremap[beginning + i].kernel = kernel;
+  }
+  
+
+  return beginning * PAGE_SIZE;
 }
 
-/**
- * @brief allocate a page for the user. 
- * It is different from the alloc_kpage as it allocate one frame at a time .
- * 
- * @return vaddr_t the virtual address of the allocated frame
- */
-paddr_t 
-alloc_upage(){
-    //TODO manage the case in which there are no free frames with swapping.
-    dumbvm_cansleep();
-    return getppages(1);
+void coremap_freeppages(paddr_t addr){
+  long i,first = addr / PAGE_SIZE;
+  long allocSize = coremap[first].allocSize;
+
+
+  KASSERT(nRamFrames > first);
+  KASSERT(allocSize != 0);
+  
+
+  for(i = first; i<allocSize; i++){
+    coremap[i].used = 0;
+  }
+
+  coremap[first].allocSize = 0;
+
+  
 }
 
-/**
- * @brief deallocate the given page for the user.
- * 
- * @param addr 
- */
-void free_upage(vaddr_t addr){
-    getfreeppages(1);
-};
+
