@@ -109,11 +109,11 @@ boot(void)
 	kprintf("\n");
 
 	/* Early initialization. */
-// #if OPT_RUDEVM 
-// 	coremap_bootstrap();
-// #else
+#if OPT_RUDEVM 
+	coremap_bootstrap();
+#else
 	ram_bootstrap();
-// #endif
+#endif
 	proc_bootstrap();
 	thread_bootstrap();
 	hardclock_bootstrap();
