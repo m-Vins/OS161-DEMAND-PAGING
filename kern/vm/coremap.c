@@ -1,13 +1,3 @@
-/**
- * @file coremap.c
- * @author Vincenzo Mezzela
- * @brief it keeps track of free and used physical ram frames.
- * @version 0.1
- * @date 2022-08-03
- * 
- */
-
-
 #include <types.h>
 #include <vm.h>
 #include <lib.h>
@@ -22,13 +12,15 @@ struct coremap_entry *coremap;
 
 
 /**
- * @brief 
- * 
+ * @brief Initialization of the coremap, this function is called 
+ * in the very initial phase of the system bootsrap. It replace ram_bootstrap
+ * as in the version with demand paging ram.c is totally bypassed.
+ *  
  */
 void coremap_bootstrap(){
-  paddr_t firstpaddr;  /* one past end of first free physical page */
-  paddr_t lastpaddr;  /* one past end of last free physical page */
-  size_t coremap_size; /* number of bytes of coremap */
+  paddr_t firstpaddr;   /* one past end of first free physical page */
+  paddr_t lastpaddr;    /* one past end of last free physical page */
+  size_t coremap_size;  /* number of bytes of coremap */
   int coremap_pages;
   int kernel_pages;
   int i;
@@ -63,7 +55,7 @@ void coremap_bootstrap(){
   coremap = (struct coremap_entry *)firstfree;
   
   /* 
-   * Compute the size of coremap and kernet in pages in order to set 
+   * Compute the size of coremap and kernel in pages in order to set 
    * the pages right after firstfree as used.
    */
   coremap_size = sizeof(struct coremap_entry) * nRamFrames;
@@ -96,7 +88,7 @@ void coremap_bootstrap(){
  * @param npages 
  * @return paddr_t of the pages, 0 if no pages are available.
  */
-paddr_t coremap_getppages(int npages, int kernel)
+paddr_t coremap_getppages(int npages, char kernel)
 {
   int end;
   int beginning;
@@ -139,6 +131,11 @@ paddr_t coremap_getppages(int npages, int kernel)
   return beginning * PAGE_SIZE;
 }
 
+/**
+ * @brief free the allocated pages starting from addr
+ * 
+ * @param addr 
+ */
 void coremap_freeppages(paddr_t addr){
   long i,first = addr / PAGE_SIZE;
   long allocSize = coremap[first].allocSize;
@@ -154,7 +151,6 @@ void coremap_freeppages(paddr_t addr){
 
   coremap[first].allocSize = 0;
 
-  
 }
 
 

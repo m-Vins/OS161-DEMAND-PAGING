@@ -16,7 +16,7 @@
 /* (this must be > 64K so argument blocks of size ARG_MAX will fit) */
 #define VM_STACKPAGES    18
 
-static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
+static struct spinlock vm_lock = SPINLOCK_INITIALIZER;
 
 void
 vm_bootstrap(void)
@@ -44,23 +44,38 @@ vm_can_sleep(void)
 	}
 }
 
+/**
+ * @brief get npages from the coremap.
+ * 
+ * @param npages 
+ * @param kernel KERNEL if the page is requested from the kernel, USER otherwise.
+ * @return paddr_t the first physical address of the requested pages.
+ */
 static
 paddr_t
-getppages(unsigned long npages)
+getppages(unsigned long npages, char kernel)
 {
 	paddr_t addr;
 
-	spinlock_acquire(&stealmem_lock);
-
-	// addr = ram_stealmem(npages);
-	addr = coremap_getppages(npages,1);
-
-	spinlock_release(&stealmem_lock);
+	spinlock_acquire(&vm_lock);
+	addr = coremap_getppages(npages,kernel);
+	spinlock_release(&vm_lock);
 	
-	
-
 	return addr;
 }
+
+/**
+ * @brief free the allocated pages starting from addr.
+ * 
+ * @param addr 
+ */
+static 
+void
+freeppages(paddr_t addr){
+	spinlock_acquire(&vm_lock);
+	coremap_freeppages(addr);
+	spinlock_release(&vm_lock);
+} 
 
 /* Allocate/free some kernel-space virtual pages */
 vaddr_t
@@ -69,7 +84,7 @@ alloc_kpages(unsigned npages)
 	paddr_t pa;
 
 	vm_can_sleep();
-	pa = getppages(npages);
+	pa = getppages(npages, COREMAP_KERNEL);
 	if (pa==0) {
 		return 0;
 	}
@@ -79,20 +94,28 @@ alloc_kpages(unsigned npages)
 void
 free_kpages(vaddr_t addr)
 {
-	/* nothing - leak the memory. */
-
-	(void)addr;
+	/* get the physical address */
+	paddr_t pa = addr - MIPS_KSEG0;
+	spinlock_acquire(&vm_lock);
+	freeppages(pa);
+	spinlock_release(&vm_lock);
 }
 
 /**
  * @brief allocate a page for the user. 
  * It is different from the alloc_kpage as it allocate one frame at a time .
  * 
- * @return vaddr_t the virtual address of the allocated frame
+ * @return paddr_t the virtual address of the allocated frame
  */
+// static
 // paddr_t 
 // alloc_upage(){
-// 	return 0;
+// 	paddr_t pa;
+
+// 	/* the user can alloc one page at a time */
+// 	pa = getppages(1, COREMAP_COREMAP_USER);
+	
+// 	return pa;
 // }
 
 /**
@@ -100,8 +123,9 @@ free_kpages(vaddr_t addr)
  * 
  * @param addr 
  */
-// void free_upage(vaddr_t addr){
-//     (void)addr;
+// static
+// void free_upage(paddr_t addr){
+// 	freeppages(addr);
 // };
 
 void
