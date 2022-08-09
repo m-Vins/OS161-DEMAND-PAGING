@@ -26,10 +26,11 @@ struct coremap_entry *coremap;
  * 
  */
 void coremap_bootstrap(){
-
+  paddr_t firstpaddr;  /* one past end of first free physical page */
   paddr_t lastpaddr;  /* one past end of last free physical page */
   size_t coremap_size; /* number of bytes of coremap */
   int coremap_pages;
+  int kernel_pages;
   int i;
 
   /* Get size of RAM. */
@@ -47,6 +48,12 @@ void coremap_bootstrap(){
     lastpaddr = 512 * 1024 * 1024;
   }
 
+  /*
+   * Get first free virtual address from where start.S saved it.
+   * Convert to physical address.
+   */
+  firstpaddr = firstfree - MIPS_KSEG0;
+
   KASSERT(lastpaddr % PAGE_SIZE == 0);
 
   nRamFrames = lastpaddr / PAGE_SIZE;
@@ -56,11 +63,12 @@ void coremap_bootstrap(){
   coremap = (struct coremap_entry *)firstfree;
   
   /* 
-   * Compute the size of the coremap in pages in order to set 
+   * Compute the size of coremap and kernet in pages in order to set 
    * the pages right after firstfree as used.
    */
   coremap_size = sizeof(struct coremap_entry) * nRamFrames;
   coremap_pages = (coremap_size + PAGE_SIZE - 1) / PAGE_SIZE;
+  kernel_pages = firstpaddr / PAGE_SIZE;
 
   /*  Initialize the coremap. */
   for (i = 0; i < nRamFrames; i++)
@@ -70,13 +78,11 @@ void coremap_bootstrap(){
     coremap[i].kernel = 0;
   }
 
-  /* it is set to 0 as we do not need to free this part of the memory */
-  coremap[0].allocSize = 0; 
   /* 
    * Set the initial part of the coremap as used by the kernel.
    * It contains the exception handlers, the kernel, the coremap and some padding.
    */
-  for (i = 0; i < coremap_pages + (long)firstfree; i++)
+  for (i = 0; i < kernel_pages + coremap_pages; i++)
   {
     coremap[i].used = 1;
     coremap[i].kernel = 1;
