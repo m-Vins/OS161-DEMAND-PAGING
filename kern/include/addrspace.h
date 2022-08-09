@@ -37,6 +37,7 @@
 
 #include <vm.h>
 #include "opt-dumbvm.h"
+#include "opt-rudevm.h"
 
 struct vnode;
 
@@ -59,6 +60,11 @@ struct addrspace {
         paddr_t as_stackpbase;
 #else
         /* Put stuff here for your VM system */
+#if OPT_RUDEVM
+        struct segment *s_text;
+        struct segment *s_data;
+        struct segment *s_stack;
+#endif
 #endif
 };
 
@@ -109,11 +115,21 @@ void              as_activate(void);
 void              as_deactivate(void);
 void              as_destroy(struct addrspace *);
 
+#if OPT_RUDEVM
+int               as_define_region(struct addrspace *as,
+                                   vaddr_t vaddr, size_t sz,
+                                   off_t elf_offset,
+                                   int readable,
+                                   int writeable,
+                                   int executable);
+#else
 int               as_define_region(struct addrspace *as,
                                    vaddr_t vaddr, size_t sz,
                                    int readable,
                                    int writeable,
                                    int executable);
+#endif
+
 int               as_prepare_load(struct addrspace *as);
 int               as_complete_load(struct addrspace *as);
 int               as_define_stack(struct addrspace *as, vaddr_t *initstackptr);

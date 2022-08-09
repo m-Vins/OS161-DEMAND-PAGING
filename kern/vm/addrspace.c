@@ -33,6 +33,11 @@
 #include <addrspace.h>
 #include <vm.h>
 #include <proc.h>
+#include <segment.h>
+
+
+#define VM_STACKPAGES    18
+
 
 /*
  * Note! If OPT_DUMBVM is set, as is the case until you start the VM
@@ -50,9 +55,9 @@ as_create(void)
 		return NULL;
 	}
 
-	/*
-	 * Initialize as needed.
-	 */
+	as->s_data = NULL;
+	as->s_text = NULL;
+	as->s_stack = NULL;
 
 	return as;
 }
@@ -127,19 +132,43 @@ as_deactivate(void)
  * want to implement them.
  */
 int
-as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
+as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t elf_offset,
 		 int readable, int writeable, int executable)
 {
-	/*
-	 * Write this.
-	 */
+	size_t npages;
 
-	(void)as;
-	(void)vaddr;
-	(void)memsize;
+	dumbvm_can_sleep();
+
+	/* Align the region. First, the base... */
+	memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
+	vaddr &= PAGE_FRAME;
+
+	/* ...and now the length. */
+	memsize = (memsize + PAGE_SIZE - 1) & PAGE_FRAME;
+
+	npages = memsize / PAGE_SIZE;
+
+	/* We don't use these - all pages are read-write */
 	(void)readable;
 	(void)writeable;
 	(void)executable;
+
+	if (as->s_text == NULL) {
+		as->s_text = segment_create();
+		segment_define(as->s_text, elf_offset, vaddr, npages);
+		return 0;
+	}
+
+	if (as->s_data == NULL) {
+		as->s_data = segment_create();
+		segment_define(as->s_data, elf_offset, vaddr, npages);
+		return 0;
+	}
+
+	/*
+	 * Support for more than two regions is not available.
+	 */
+	kprintf("dumbvm: Warning: too many regions\n");
 	return ENOSYS;
 }
 
@@ -168,12 +197,9 @@ as_complete_load(struct addrspace *as)
 int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
-	/*
-	 * Write this.
-	 */
-
-	(void)as;
-
+	as->s_stack->base_vaddr = USERSTACK;
+	as->s_stack->npages = VM_STACKPAGES;;
+	
 	/* Initial user-level stack pointer */
 	*stackptr = USERSTACK;
 
