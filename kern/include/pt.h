@@ -2,6 +2,7 @@
 #define _PT_H_
 
 #include <types.h>
+#include <addrspace.h>
 
 #define NOT_LOADED 0
 #define IN_MEMORY 1
