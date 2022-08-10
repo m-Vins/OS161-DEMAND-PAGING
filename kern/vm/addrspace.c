@@ -137,7 +137,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t elf_
 {
 	size_t npages;
 
-	dumbvm_can_sleep();
+	//vm_can_sleep();
 
 	/* Align the region. First, the base... */
 	memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
@@ -168,7 +168,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t elf_
 	/*
 	 * Support for more than two regions is not available.
 	 */
-	kprintf("dumbvm: Warning: too many regions\n");
+	kprintf("vm: Warning: too many regions\n");
 	return ENOSYS;
 }
 

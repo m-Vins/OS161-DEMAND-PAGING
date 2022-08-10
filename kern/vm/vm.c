@@ -14,7 +14,7 @@
 
 /* under vm, always have 72k of user stack */
 /* (this must be > 64K so argument blocks of size ARG_MAX will fit) */
-#define VM_STACKPAGES    18
+
 
 static struct spinlock vm_lock = SPINLOCK_INITIALIZER;
 
@@ -95,7 +95,7 @@ void
 free_kpages(vaddr_t addr)
 {
 	/* get the physical address */
-	paddr_t pa = addr - MIPS_KSEG0;
+	paddr_t pa = KVADDR_TO_PADDR(addr);
 	spinlock_acquire(&vm_lock);
 	freeppages(pa);
 	spinlock_release(&vm_lock);
