@@ -94,7 +94,7 @@ int pt_set_entry(struct addrspace *as, vaddr_t vaddr, paddr_t paddr, unsigned in
         return -1;
     }    
 
-    entry->frame_index = (unsigned int)(paddr_t>>12);
+    entry->frame_index = (unsigned int)(paddr>>12);
     entry->swap_index = swap_index;
     entry->status = status;
 
@@ -102,9 +102,9 @@ int pt_set_entry(struct addrspace *as, vaddr_t vaddr, paddr_t paddr, unsigned in
 
 }
 
-void pt_destroy(struct pt_entry*) //TODO check if pointers ok (also functions above)
+void pt_destroy(struct pt_entry* entry) //TODO check if pointers ok (also functions above)
 {
-    KASSERT(pt_entry != NULL);
-    kfree(pt_entry);
+    KASSERT(entry != NULL);
+    kfree(entry);
 }
 
