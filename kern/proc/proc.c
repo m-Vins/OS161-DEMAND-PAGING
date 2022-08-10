@@ -94,6 +94,11 @@ proc_create(const char *name)
 void
 proc_destroy(struct proc *proc)
 {
+
+#if OPT_RUDEVM
+	vfs_close(proc->p_vnode);
+#endif
+
 	/*
 	 * You probably want to destroy and null out much of the
 	 * process (particularly the address space) at exit time if
