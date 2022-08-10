@@ -58,6 +58,7 @@ as_create(void)
 	as->s_data = NULL;
 	as->s_text = NULL;
 	as->s_stack = NULL;
+	as->as_ptable = NULL;
 
 	return as;
 }
@@ -106,9 +107,7 @@ as_activate(void)
 		return;
 	}
 
-	/*
-	 * Write this.
-	 */
+	// Do nothing because it will be loaded in TLB on demand
 }
 
 void
@@ -183,3 +182,14 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 
 	return 0;
 }
+
+#if OPT_RUDEVM
+int
+as_define_pt(struct addrspace *as)
+{
+	/* Create the page table based on the segments loaded previously */
+	as->as_ptable = pt_create(as->s_data->npages + as->s_text->npages + as->s_stack->npages);
+
+	return 0;
+}
+#endif
