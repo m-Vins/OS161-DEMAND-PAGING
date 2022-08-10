@@ -34,6 +34,7 @@
 #include <vm.h>
 #include <proc.h>
 #include <segment.h>
+#include <vm_tlb.h>
 
 
 #define VM_STACKPAGES    18
@@ -107,7 +108,7 @@ as_activate(void)
 		return;
 	}
 
-	// Do nothing because it will be loaded in TLB on demand
+	tlb_invalidate();
 }
 
 void
@@ -191,5 +192,41 @@ as_define_pt(struct addrspace *as)
 	as->as_ptable = pt_create(as->s_data->npages + as->s_text->npages + as->s_stack->npages);
 
 	return 0;
+}
+
+static
+struct segment *
+as_get_segment(struct addrspace *as, vaddr_t vaddr){
+    
+    if (vaddr >= as->s_text->base_vaddr && vaddr < as->s_text->base_vaddr + as->s_text->npages * PAGE_SIZE)
+    {
+        return as->s_text;
+    }
+
+    if (vaddr >= as->s_data->base_vaddr && vaddr < as->s_data->base_vaddr + as->s_data->npages * PAGE_SIZE)
+    {
+        return as->s_data;
+    }
+
+    if (vaddr >= as->s_stack->base_vaddr && vaddr < as->s_stack->base_vaddr + as->s_stack->npages * PAGE_SIZE)
+    {
+        return as->s_stack;
+    }
+    
+    return NULL;
+}
+
+off_t
+as_get_elf_offset(vaddr_t vaddr, struct addrspace *as)
+{
+	struct segment *seg;
+
+	seg = as_get_segment(as, vaddr);
+	if(seg == NULL)
+	{
+		panic("Cannot retrieve as segment");
+	}
+
+	return seg->elf_offset - seg->base_vaddr + vaddr;
 }
 #endif

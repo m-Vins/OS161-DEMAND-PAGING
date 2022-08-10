@@ -60,6 +60,7 @@
 #include <vnode.h>
 #include <elf.h>
 #include "opt-rudevm.h"
+#include <pt.h>
 
 /*
  * Load a segment at virtual address VADDR. The segment in memory
@@ -75,7 +76,24 @@
  * change this code to not use uiomove, be sure to check for this case
  * explicitly.
  */
-#if !OPT_RUDEVM
+#if OPT_RUDEVM
+int
+load_page(struct vnode *v, off_t offset, paddr_t page_paddr)
+{
+	struct iovec iov;
+    struct uio ku;
+	int result;
+
+	uio_kinit(&iov, &ku, (void *)PADDR_TO_KVADDR(page_paddr), PAGE_SIZE, offset, UIO_READ);
+    result = VOP_READ(v, &ku);
+    if (result)
+    {
+        panic("Error loading page\n");
+    }
+
+	return 0;
+}
+#else
 static
 int
 load_segment(struct addrspace *as, struct vnode *v,

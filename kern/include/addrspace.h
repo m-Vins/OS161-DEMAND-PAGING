@@ -136,7 +136,7 @@ int               as_complete_load(struct addrspace *as);
 int               as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
 
 int               as_define_pt(struct addrspace *as);
-
+off_t             as_get_elf_offset(vaddr_t vaddr, struct addrspace *as);
 
 /*
  * Functions in loadelf.c
@@ -147,5 +147,6 @@ int               as_define_pt(struct addrspace *as);
 
 int load_elf(struct vnode *v, vaddr_t *entrypoint);
 
+int load_page(struct vnode *v, off_t offset, paddr_t page_paddr);
 
 #endif /* _ADDRSPACE_H_ */
