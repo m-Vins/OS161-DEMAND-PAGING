@@ -86,7 +86,7 @@ struct pt_entry *pt_get_entry(const vaddr_t vaddr, struct addrspace *as)
 }
 
 int pt_set_entry(struct addrspace *as, vaddr_t vaddr, paddr_t paddr, unsigned int swap_index, unsigned char status){
-    
+    KASSERT(status != NOT_LOADED); //TODO is it ok?
     KASSERT( (paddr == 0 && swap_index != 0 && status == IN_SWAP) || (paddr != 0 && swap_index == 0 && status == IN_MEMORY) );
 
     struct pt_entry *entry = pt_get_entry(vaddr, as);
@@ -102,7 +102,7 @@ int pt_set_entry(struct addrspace *as, vaddr_t vaddr, paddr_t paddr, unsigned in
 
 }
 
-void pt_destroy(struct pt_entry*)
+void pt_destroy(struct pt_entry*) //TODO check if pointers ok (also functions above)
 {
     KASSERT(pt_entry != NULL);
     kfree(pt_entry);
