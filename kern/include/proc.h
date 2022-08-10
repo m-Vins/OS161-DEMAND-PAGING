@@ -38,7 +38,6 @@
 
 #include <spinlock.h>
 #include <pt.h>
-#include "opt-rudevm.h"
 
 struct addrspace;
 struct thread;
@@ -73,9 +72,7 @@ struct proc {
 	struct vnode *p_cwd;		/* current working directory */
 
 	/* add more material here as needed */
-	#if OPT_RUDEVM
-	struct pt_entry *p_ptable;
-	#endif
+
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */

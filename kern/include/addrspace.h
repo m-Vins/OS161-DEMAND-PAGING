@@ -64,6 +64,7 @@ struct addrspace {
         struct segment *s_text;
         struct segment *s_data;
         struct segment *s_stack;
+	struct pt_entry *as_ptable;
 #endif
 #endif
 };
