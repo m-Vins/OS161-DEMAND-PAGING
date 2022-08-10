@@ -71,6 +71,7 @@ struct pt_entry *pt_create(unsigned long pagetable_size)
     {
         pt[i].frame_index = 0;
         pt[i].swap_index = 0;
+        pt[i].status = NOT_LOADED;
     }
 
     return pt;
