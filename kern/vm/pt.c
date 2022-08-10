@@ -84,3 +84,27 @@ struct pt_entry *pt_get_entry(const vaddr_t vaddr, struct addrspace *as)
     
     return &as->as_ptable[pt_index];
 }
+
+int pt_set_entry(struct addrspace *as, vaddr_t vaddr, paddr_t paddr, unsigned int swap_index, unsigned char status){
+    
+    KASSERT( (paddr == 0 && swap_index != 0 && status == IN_SWAP) || (paddr != 0 && swap_index == 0 && status == IN_MEMORY) );
+
+    struct pt_entry *entry = pt_get_entry(vaddr, as);
+    if(entry == NULL){
+        return -1;
+    }    
+
+    entry->frame_index = (unsigned int)(paddr_t>>12);
+    entry->swap_index = swap_index;
+    entry->status = status;
+
+    return 1; 
+
+}
+
+void pt_destroy(struct pt_entry*)
+{
+    KASSERT(pt_entry != NULL);
+    kfree(pt_entry);
+}
+
