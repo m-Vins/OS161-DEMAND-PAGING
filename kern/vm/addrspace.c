@@ -173,43 +173,13 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t elf_
 }
 
 int
-as_prepare_load(struct addrspace *as)
-{
-	/*
-	 * Write this.
-	 */
-
-	(void)as;
-	return 0;
-}
-
-int
-as_complete_load(struct addrspace *as)
-{
-	/*
-	 * Write this.
-	 */
-
-	(void)as;
-	return 0;
-}
-
-int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
-	as->s_stack->base_vaddr = USERSTACK;
-	as->s_stack->npages = VM_STACKPAGES;;
+	as->s_stack = segment_create();
+	segment_define(as->s_stack, 0, USERSTACK - VM_STACKPAGES * PAGE_SIZE, VM_STACKPAGES);
 	
 	/* Initial user-level stack pointer */
 	*stackptr = USERSTACK;
 
 	return 0;
 }
-
-// static
-// void
-// as_zero_region(paddr_t paddr, unsigned npages)
-// {
-// 	bzero((void *)PADDR_TO_KVADDR(paddr), npages * PAGE_SIZE);
-// }
-
