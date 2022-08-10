@@ -9,6 +9,7 @@ struct pt_entry
     unsigned int swap_index : 12;
 };
 
-struct pt_entry *get_pt_entry(const vaddr_t vaddr);
+struct pt_entry *pt_get_entry(const vaddr_t vaddr);
+struct pt_entry *pt_create(unsigned long pagetable_size);
 
 #endif

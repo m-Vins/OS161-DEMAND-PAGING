@@ -458,4 +458,5 @@ optfile   rudevm    vm/vm.c
 optfile   rudevm    vm/coremap.c    
 optfile   rudevm    vm/swapfile.c
 optfile   rudevm    vm/pt.c
+optfile   rudevm    vm/segment.c
 # do not compile ram.c as it is not used in rudevm
