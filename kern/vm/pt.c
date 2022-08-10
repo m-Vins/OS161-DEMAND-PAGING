@@ -45,7 +45,7 @@ static int pt_get_index(struct addrspace *as,vaddr_t vaddr){
         return pt_index;
     }
 
-    if (vaddr >= as->s_stack->base_vaddr && vaddr < as->s_stack->base_vaddr + as->s_stack->npages)
+    if (vaddr >= as->s_stack->base_vaddr && vaddr < as->s_stack->base_vaddr + as->s_stack->npages * PAGE_SIZE)
     {
         pt_index = as->s_text->npages + as->s_data->npages +  (vaddr - as->s_stack->base_vaddr) / PAGE_SIZE ;
         return pt_index;
