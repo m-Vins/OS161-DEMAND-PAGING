@@ -44,6 +44,7 @@
 #include <vfs.h>
 #include <syscall.h>
 #include <test.h>
+#include <segment.h>
 
 /*
  * Load program "progname" and start running it in usermode.
@@ -96,6 +97,11 @@ runprogram(char *progname)
 		/* p_addrspace will go away when curproc is destroyed */
 		return result;
 	}
+
+#if OPT_RUDEVM
+	/* Create the page table based on the segments loaded previously */
+	as->as_ptable = pt_create(as->s_data->npages + as->s_text->npages + as->s_stack->npages);
+#endif
 
 	/* Warp to user mode. */
 	enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,
