@@ -18,7 +18,7 @@ struct pt_entry
     unsigned char status : 2;
 };
 
-struct pt_entry *pt_get_entry(const vaddr_t vaddr);
+struct pt_entry *pt_get_entry(const vaddr_t vaddr, struct addrspace *as);
 struct pt_entry *pt_create(unsigned long pagetable_size);
 
 #endif

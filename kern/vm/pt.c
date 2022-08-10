@@ -77,12 +77,10 @@ struct pt_entry *pt_create(unsigned long pagetable_size)
 }
 
 
-struct pt_entry *pt_get_entry(const vaddr_t vaddr)
+struct pt_entry *pt_get_entry(const vaddr_t vaddr, struct addrspace *as)
 {
     
-    struct addrspace *cur_as = proc_getas();
+    int pt_index = pt_get_index(as, vaddr);
     
-    int pt_index = pt_get_index(cur_as, vaddr);
-    
-    return &curproc->p_ptable[pt_index];
+    return &as->as_ptable[pt_index];
 }
