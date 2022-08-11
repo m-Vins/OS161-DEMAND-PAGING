@@ -98,9 +98,7 @@ free_kpages(vaddr_t addr)
 {
 	/* get the physical address */
 	paddr_t pa = KVADDR_TO_PADDR(addr);
-	spinlock_acquire(&vm_lock);
 	freeppages(pa);
-	spinlock_release(&vm_lock);
 }
 
 /**
@@ -148,12 +146,12 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	/* Obtain the first address of the page */
 	faultaddress &= PAGE_FRAME;
 
-	DEBUG(DB_VM, "dumbvm: fault: 0x%x\n", faultaddress);
+	DEBUG(DB_VM, "vm: fault: 0x%x\n", faultaddress);
 
 	switch (faulttype)
 	{
 	    case VM_FAULT_READONLY:
-			panic("dumbvm: got VM_FAULT_READONLY\n");
+			panic("vm: got VM_FAULT_READONLY\n");
 			// TODO: exit from process;
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
