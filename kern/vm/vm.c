@@ -12,8 +12,10 @@
 #include <coremap.h>
 #include <addrspace.h>
 #include <vm_tlb.h>
+#include "opt-rudevm.h"
 
 
+#if OPT_RUDEVM
 /* under vm, always have 72k of user stack */
 /* (this must be > 64K so argument blocks of size ARG_MAX will fit) */
 
@@ -203,5 +205,5 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	return 0;
 }
-
+#endif /* OPT_RUDEVM */
 

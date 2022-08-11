@@ -38,6 +38,7 @@
 
 #include <spinlock.h>
 #include <pt.h>
+#include "opt-rudevm.h"
 
 struct addrspace;
 struct thread;

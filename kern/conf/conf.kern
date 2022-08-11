@@ -380,10 +380,6 @@ file      syscall/loadelf.c
 file      syscall/runprogram.c
 file      syscall/time_syscalls.c
 
-defoption syscalls
-optfile   syscalls syscall/file_syscall.c
-optfile   syscalls syscall/proc_syscall.c
-
 #
 # Startup and initialization
 #
@@ -451,6 +447,10 @@ optfile net	test/nettest.c
 #              Assignment              #
 #                                      #
 ########################################
+
+defoption syscalls
+optfile   syscalls syscall/file_syscall.c
+optfile   syscalls syscall/proc_syscall.c
 
 defoption rudevm
 optfile   rudevm    vm/vm_tlb.c

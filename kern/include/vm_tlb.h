@@ -2,6 +2,9 @@
 #define _VM_TLB_H_
 
 #include <types.h>
+#include "opt-rudevm.h"
+
+#if OPT_RUDEVM
 
 /*
  *  tlb_invalidate: invalidate all the slots in the tlb.
@@ -14,5 +17,7 @@
 void tlb_invalidate(void);
 void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro);
 void tlb_remove(vaddr_t vaddr);
+
+#endif /* OPT_RUDEVM */
 
 #endif /* _VM_TLB_H_ */

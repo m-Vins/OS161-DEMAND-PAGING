@@ -58,14 +58,11 @@ struct addrspace {
         paddr_t as_pbase2;
         size_t as_npages2;
         paddr_t as_stackpbase;
-#else
-        /* Put stuff here for your VM system */
-#if OPT_RUDEVM
+#elif OPT_RUDEVM
         struct segment *s_text;
         struct segment *s_data;
         struct segment *s_stack;
 	struct pt_entry *as_ptable;
-#endif
 #endif
 };
 
@@ -135,8 +132,10 @@ int               as_prepare_load(struct addrspace *as);
 int               as_complete_load(struct addrspace *as);
 int               as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
 
+#if OPT_RUDEVM
 int               as_define_pt(struct addrspace *as);
 off_t             as_get_elf_offset(vaddr_t vaddr, struct addrspace *as);
+#endif
 
 /*
  * Functions in loadelf.c
@@ -147,6 +146,8 @@ off_t             as_get_elf_offset(vaddr_t vaddr, struct addrspace *as);
 
 int load_elf(struct vnode *v, vaddr_t *entrypoint);
 
+#if OPT_RUDEVM
 int load_page(struct vnode *v, off_t offset, paddr_t page_paddr);
+#endif
 
 #endif /* _ADDRSPACE_H_ */

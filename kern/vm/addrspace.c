@@ -39,13 +39,7 @@
 
 #define VM_STACKPAGES    18
 
-
-/*
- * Note! If OPT_DUMBVM is set, as is the case until you start the VM
- * assignment, this file is not compiled or linked or in any way
- * used. The cheesy hack versions in dumbvm.c are used instead.
- */
-
+#if OPT_RUDEVM
 struct addrspace *
 as_create(void)
 {
@@ -184,7 +178,6 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 	return 0;
 }
 
-#if OPT_RUDEVM
 int
 as_define_pt(struct addrspace *as)
 {
@@ -229,4 +222,4 @@ as_get_elf_offset(vaddr_t vaddr, struct addrspace *as)
 
 	return seg->elf_offset - seg->base_vaddr + vaddr;
 }
-#endif
+#endif /* OPT_RUDEVM */

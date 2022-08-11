@@ -1,6 +1,9 @@
 #ifndef _COREMAP_H_
 #define _COREMAP_H_
 
+#include "opt-rudevm.h"
+
+#if OPT_RUDEVM
 
 #define COREMAP_KERNEL 1
 #define COREMAP_USER 0
@@ -17,4 +20,6 @@ void coremap_bootstrap(void);
 paddr_t coremap_getppages(int npages, char kernel);
 void coremap_freeppages(paddr_t addr);
 
-#endif
+#endif /* OPT_RUDEVM */
+
+#endif /* _COREMAP_H_ */
