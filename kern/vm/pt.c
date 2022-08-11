@@ -8,6 +8,7 @@
 /**
  * @brief Compute the page table index of the virtual address.
  * 
+ * //NOTE THE FOLLOWING COMMENT IS NO MORE CORRECT
  * Check the segment from which the vaddr belongs to. 
  * In case it belongs either to data or text segment, the page table 
  * index is computed by means of a division.
@@ -36,18 +37,30 @@
  * @param vaddr virtual address
  * @return int page table index
  */
-static int pt_get_index(struct addrspace *as,vaddr_t vaddr){
-    int pt_index;
+static int pt_get_index(struct addrspace *as, vaddr_t vaddr){
+    unsigned int previous_pages = 0;
+    unsigned int pt_index;
 
-    if (vaddr >= as->s_text->base_vaddr && vaddr < as->s_data->base_vaddr + as->s_data->npages * PAGE_SIZE)
+    if (vaddr >= as->s_text->base_vaddr && vaddr < as->s_text->base_vaddr + as->s_text->npages * PAGE_SIZE)
     {
-        pt_index = vaddr / PAGE_SIZE;
+        pt_index = ( vaddr - as->s_text->base_vaddr ) / PAGE_SIZE;
+        KASSERT(pt_index < as->s_text->npages);
         return pt_index;
     }
+    previous_pages += as->s_text->npages;
+
+    if (vaddr >= as->s_data->base_vaddr && vaddr < as->s_data->base_vaddr + as->s_data->npages * PAGE_SIZE)
+    {
+        pt_index = previous_pages + ( vaddr - as->s_data->base_vaddr ) / PAGE_SIZE;
+        KASSERT(pt_index <  previous_pages + as->s_data->npages);
+        return pt_index;
+    }
+    previous_pages += as->s_data->npages;
 
     if (vaddr >= as->s_stack->base_vaddr && vaddr < as->s_stack->base_vaddr + as->s_stack->npages * PAGE_SIZE)
     {
-        pt_index = as->s_text->npages + as->s_data->npages +  (vaddr - as->s_stack->base_vaddr) / PAGE_SIZE ;
+        pt_index = previous_pages + (vaddr - as->s_stack->base_vaddr) / PAGE_SIZE ;
+        KASSERT(pt_index <  previous_pages + as->s_stack->npages);
         return pt_index;
     }
 
