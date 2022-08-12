@@ -35,6 +35,7 @@
 #include <proc.h>
 #include <segment.h>
 #include <vm_tlb.h>
+#include <pt.h>
 
 
 #define VM_STACKPAGES    18
@@ -81,9 +82,12 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 void
 as_destroy(struct addrspace *as)
 {
-	/*
-	 * Clean up as needed.
-	 */
+	KASSERT(as != NULL);
+
+	pt_destroy(as->as_ptable);
+	segment_destroy(as->s_text);
+	segment_destroy(as->s_data);
+	segment_destroy(as->s_stack);
 
 	kfree(as);
 }
@@ -232,4 +236,5 @@ as_get_elf_offset(struct addrspace *as, vaddr_t vaddr)
 
 	return seg->elf_offset - seg->base_vaddr + vaddr;
 }
+
 #endif /* OPT_RUDEVM */
