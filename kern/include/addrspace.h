@@ -134,7 +134,7 @@ int               as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
 
 #if OPT_RUDEVM
 int               as_define_pt(struct addrspace *as);
-off_t             as_get_elf_offset(vaddr_t vaddr, struct addrspace *as);
+off_t             as_get_elf_offset(struct addrspace *as, vaddr_t vaddr);
 #endif
 
 /*

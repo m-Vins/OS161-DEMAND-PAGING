@@ -6,32 +6,42 @@
 #include <kern/errno.h>
 
 /**
+ * The page table is an array of entries where each of them 
+ * contains information for the location of the physical page:
+ * it can be in memory, in the swap file, and it can be still 
+ * not loaded, thus we have to retrieve it from the elf file 
+ * (this is the reason why we also save the elf offset for each 
+ * segment) .
+ * 
+ * Since the address space contains a large number of pages 
+ * which don't belong to a segment, the page table does not have an
+ * entry for them in order to save memory.
+ * It means that the virtual address in the page table 
+ * IS NOT index * PAGE_SIZE.
+ * 
+ * We can think the page table as divided in three different section, 
+ * each of them dedicated to one segment, and starting from the virtual
+ * address we want to translate, we have to exploit the information
+ * in the address space structure to discover the segment from which the
+ * address belongs to, and then substract the base_vaddr and the number
+ * of page dedicated to the previous segments in the page table to retrieve 
+ * the index.
+ * 
+ * 
+ */
+
+
+
+
+/**
  * @brief Compute the page table index of the virtual address.
  * 
- * //NOTE THE FOLLOWING COMMENT IS NO MORE CORRECT
  * Check the segment from which the vaddr belongs to. 
- * In case it belongs either to data or text segment, the page table 
- * index is computed by means of a division.
  * 
- * Whereas, if the vaddr belongs to the stack segment, it must be taken 
- * into account the logic behind the page table as it does not have an 
- * entry for each page of the virtual address space. Indeed, the free 
- * region between the stack and the data segments is totally skipped
- * in the array of the page table entries. Thus, the number of skipped
- * pages must be substracted to compute the index in the page table.
- * 
- *  _________________
- * | stack           |
- * |_________________|
- * |                 |
- * |                 |
- * | free            |
- * |_________________|
- * | data            |
- * |_________________|
- * | text            |
- * |_________________|
- * 
+ * It has to take into account the logic behind the page table, as 
+ * only the page of the address spages that belong to a segment are 
+ * considered in the page table. 
+ *  
  * 
  * @param as address space
  * @param vaddr virtual address
@@ -40,6 +50,8 @@
 static int pt_get_index(struct addrspace *as, vaddr_t vaddr){
     unsigned int previous_pages = 0;
     unsigned int pt_index;
+    
+    KASSERT(as != NULL);
 
     if (vaddr >= as->s_text->base_vaddr && vaddr < as->s_text->base_vaddr + as->s_text->npages * PAGE_SIZE)
     {
@@ -91,8 +103,9 @@ struct pt_entry *pt_create(unsigned long pagetable_size)
 }
 
 
-struct pt_entry *pt_get_entry(const vaddr_t vaddr, struct addrspace *as)
+struct pt_entry *pt_get_entry(struct addrspace *as, const vaddr_t vaddr)
 {
+    KASSERT(as != NULL);
     
     int pt_index = pt_get_index(as, vaddr);
     
@@ -100,10 +113,16 @@ struct pt_entry *pt_get_entry(const vaddr_t vaddr, struct addrspace *as)
 }
 
 int pt_set_entry(struct addrspace *as, vaddr_t vaddr, paddr_t paddr, unsigned int swap_index, unsigned char status){
-    KASSERT(status != NOT_LOADED); //TODO is it ok?
-    KASSERT( (paddr == 0 && swap_index != 0 && status == IN_SWAP) || (paddr != 0 && swap_index == 0 && status == IN_MEMORY) );
 
-    struct pt_entry *entry = pt_get_entry(vaddr, as);
+    KASSERT(as != NULL);
+    KASSERT(status == NOT_LOADED || status == IN_SWAP || status == IN_MEMORY);
+    KASSERT(    (paddr == 0 && swap_index != 0 && status == IN_SWAP) 
+            ||  (paddr != 0 && swap_index == 0 && status == IN_MEMORY) 
+            ||  (paddr == 0 && swap_index == 0 && status == NOT_LOADED) );
+
+    
+
+    struct pt_entry *entry = pt_get_entry(as, vaddr);
     if(entry == NULL){
         return -1;
     }    
@@ -116,7 +135,7 @@ int pt_set_entry(struct addrspace *as, vaddr_t vaddr, paddr_t paddr, unsigned in
 
 }
 
-void pt_destroy(struct pt_entry* entry) //TODO check if pointers ok (also functions above)
+void pt_destroy(struct pt_entry* entry) 
 {
     KASSERT(entry != NULL);
     kfree(entry);

@@ -186,15 +186,14 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	KASSERT(as->s_text != NULL);
 	KASSERT(as->as_ptable != NULL);
 
-	pt_row = pt_get_entry(faultaddress, as);
+	pt_row = pt_get_entry(as, faultaddress);
 	switch(pt_row->status)
 	{
 		case NOT_LOADED:
-			elf_offset = as_get_elf_offset(faultaddress, as);
+			elf_offset = as_get_elf_offset(as, faultaddress);
 			page_paddr = alloc_upage();
 			load_page(curproc->p_vnode, elf_offset, page_paddr);
-			pt_row->status = IN_MEMORY;
-			pt_row->frame_index = page_paddr / PAGE_SIZE;
+			pt_set_entry(as, faultaddress, page_paddr, 0, IN_MEMORY);
 		case IN_MEMORY:
 			break;
 		default:
