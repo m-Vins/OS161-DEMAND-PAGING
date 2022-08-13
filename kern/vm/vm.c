@@ -192,6 +192,9 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		case NOT_LOADED:
 			elf_offset = as_get_elf_offset(as, faultaddress);
 			page_paddr = alloc_upage();
+			if(page_paddr == 0){
+				panic("not enough memory, swap still not implemented!\n");
+			}
 			load_page(curproc->p_vnode, elf_offset, page_paddr);
 			pt_set_entry(as, faultaddress, page_paddr, 0, IN_MEMORY);
 		case IN_MEMORY:
