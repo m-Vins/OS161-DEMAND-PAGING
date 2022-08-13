@@ -39,6 +39,12 @@
 #include "opt-dumbvm.h"
 #include "opt-rudevm.h"
 
+#if OPT_RUDEVM
+#define SEGMENT_TEXT    1
+#define SEGMENT_DATA    2
+#define SEGMENT_STACK   3
+#endif
+
 struct vnode;
 
 
@@ -135,6 +141,7 @@ int               as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
 #if OPT_RUDEVM
 int               as_define_pt(struct addrspace *as);
 off_t             as_get_elf_offset(struct addrspace *as, vaddr_t vaddr);
+int               as_get_segment_type(struct addrspace *as, vaddr_t vaddr);
 #endif
 
 /*

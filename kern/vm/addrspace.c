@@ -237,4 +237,27 @@ as_get_elf_offset(struct addrspace *as, vaddr_t vaddr)
 	return seg->elf_offset - seg->base_vaddr + vaddr;
 }
 
+int
+as_get_segment_type(struct addrspace *as, vaddr_t vaddr)
+{
+	KASSERT(as != NULL);
+    
+    if (vaddr >= as->s_text->base_vaddr && vaddr < as->s_text->base_vaddr + as->s_text->npages * PAGE_SIZE)
+    {
+        return SEGMENT_TEXT;
+    }
+
+    if (vaddr >= as->s_data->base_vaddr && vaddr < as->s_data->base_vaddr + as->s_data->npages * PAGE_SIZE)
+    {
+        return SEGMENT_DATA;
+    }
+
+    if (vaddr >= as->s_stack->base_vaddr && vaddr < as->s_stack->base_vaddr + as->s_stack->npages * PAGE_SIZE)
+    {
+        return SEGMENT_STACK;
+    }
+    
+    panic("Could not find the segment");
+}
+
 #endif /* OPT_RUDEVM */
