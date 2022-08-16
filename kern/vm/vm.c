@@ -145,6 +145,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	paddr_t page_paddr;
 	off_t elf_offset;
 	int seg_type = 0;
+	int readonly;
 	
 
 	/* Obtain the first address of the page */
