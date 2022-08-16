@@ -13,7 +13,7 @@
 #include <addrspace.h>
 #include <vm_tlb.h>
 #include "opt-rudevm.h"
-
+#include "syscall.h"
 
 #if OPT_RUDEVM
 /* under vm, always have 72k of user stack */
@@ -155,9 +155,10 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	switch (faulttype)
 	{
-	    case VM_FAULT_READONLY:
-			panic("vm: got VM_FAULT_READONLY\n");
-			// TODO: exit from process;
+ 	    case VM_FAULT_READONLY:
+			kprintf("vm: got VM_FAULT_READONLY, process killed\n");
+			sys__exit(-1);
+			return 0;
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
 			break;
@@ -221,7 +222,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	{
 		readonly = as_get_segment_type(as, faultaddress) == SEGMENT_TEXT;
 	}
-
+	
 	tlb_insert(faultaddress, pt_row->frame_index * PAGE_SIZE, readonly); // TODO: check permissions
 
 	return 0;
