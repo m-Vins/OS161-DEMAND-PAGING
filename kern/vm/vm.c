@@ -144,7 +144,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	struct addrspace *as;
 	paddr_t page_paddr;
 	off_t elf_offset;
-	int seg_type;
+	int seg_type = 0;
+	
 
 	/* Obtain the first address of the page */
 	faultaddress &= PAGE_FRAME;
@@ -212,8 +213,15 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		default:
 			panic("Cannot resolve fault");
 	}
+	if(seg_type != 0){
+		readonly =  seg_type == SEGMENT_TEXT ;
+	}
+	else
+	{
+		readonly = as_get_segment_type(as, faultaddress) == SEGMENT_TEXT;
+	}
 
-	tlb_insert(faultaddress, pt_row->frame_index * PAGE_SIZE, false); // TODO: check permissions
+	tlb_insert(faultaddress, pt_row->frame_index * PAGE_SIZE, readonly); // TODO: check permissions
 
 	return 0;
 }
