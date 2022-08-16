@@ -3,7 +3,13 @@
 /kern/compile/
 !/kern/
 !/userland/
+
 /userland/*
+
+!userland/testbin/
+
+userland/testbin/*
 !/userland/testbin/Makefile
 !/userland/testbin/nosywrite/
+
 !.gitignore
