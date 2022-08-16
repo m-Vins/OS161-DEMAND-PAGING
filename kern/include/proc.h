@@ -39,6 +39,7 @@
 #include <spinlock.h>
 #include <pt.h>
 #include "opt-rudevm.h"
+#include "opt-waitpid.h"
 
 struct addrspace;
 struct thread;
@@ -76,6 +77,11 @@ struct proc {
 #if OPT_RUDEVM
 	struct vnode *p_vnode;		/* process ELF vnode */
 #endif
+
+#if OPT_WAITPID
+	int status;  			/*	exit status of the process	*/
+	struct semaphore *p_sem;
+#endif
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
@@ -102,5 +108,9 @@ struct addrspace *proc_getas(void);
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *proc_setas(struct addrspace *);
 
+
+#if OPT_WAITPID
+int proc_wait(struct proc *proc);
+#endif
 
 #endif /* _PROC_H_ */

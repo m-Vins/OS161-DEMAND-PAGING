@@ -49,11 +49,26 @@
 #include <addrspace.h>
 #include <vnode.h>
 #include <vfs.h>
+#include <synch.h>
+#include "opt-waitpid.h"
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
  */
 struct proc *kproc;
+
+#if OPT_WAITPID
+static void
+proc_init_waitpid(struct proc *proc, const char *name) {
+  proc->p_sem = sem_create(name, 0);
+}
+
+
+static void
+proc_end_waitpid(struct proc *proc) {
+  sem_destroy(proc->p_sem);
+}
+#endif
 
 /*
  * Create a proc structure.
@@ -82,6 +97,10 @@ proc_create(const char *name)
 
 	/* VFS fields */
 	proc->p_cwd = NULL;
+
+#if OPT_WAITPID
+	proc_init_waitpid(proc,name);
+#endif
 
 	return proc;
 }
@@ -173,6 +192,10 @@ proc_destroy(struct proc *proc)
 
 	KASSERT(proc->p_numthreads == 0);
 	spinlock_cleanup(&proc->p_lock);
+
+#if OPT_WAITPID
+	proc_end_waitpid(proc);
+#endif
 
 	kfree(proc->p_name);
 	kfree(proc);
@@ -324,3 +347,25 @@ proc_setas(struct addrspace *newas)
 	spinlock_release(&proc->p_lock);
 	return oldas;
 }
+
+
+#if OPT_WAITPID
+
+
+int proc_wait(struct proc *proc){
+
+	int return_status;
+	KASSERT(proc != NULL);
+	KASSERT(proc != kproc);
+
+	P(proc -> p_sem);
+	return_status = proc->status;
+	/* 
+	 * destroy the address space of the 
+	 * process after getting the exit status
+	 */
+	proc_destroy(proc);		
+	return return_status;
+
+}
+#endif

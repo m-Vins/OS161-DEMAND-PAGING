@@ -452,6 +452,8 @@ defoption syscalls
 optfile   syscalls syscall/file_syscall.c
 optfile   syscalls syscall/proc_syscall.c
 
+defoption waitpid
+
 defoption rudevm
 optfile   rudevm    vm/vm_tlb.c
 optfile   rudevm    vm/vm.c

@@ -50,6 +50,7 @@
 #include <addrspace.h>
 #include <mainbus.h>
 #include <vnode.h>
+#include "opt-waitpid.h"
 
 
 /* Magic number used as a guard value on kernel thread stacks. */
@@ -782,11 +783,13 @@ thread_exit(void)
 
 	cur = curthread;
 
+#if !OPT_WAITPID
 	/*
 	 * Detach from our process. You might need to move this action
 	 * around, depending on how your wait/exit works.
 	 */
 	proc_remthread(cur);
+#endif
 
 	/* Make sure we *are* detached (move this only if you're sure!) */
 	KASSERT(cur->t_proc == NULL);
