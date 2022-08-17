@@ -53,6 +53,7 @@
 #include "opt-rudevm.h"
 #if OPT_RUDEVM 
 #include <coremap.h>
+#include <swapfile.h>
 #endif
 
 /*
@@ -119,6 +120,9 @@ boot(void)
 	hardclock_bootstrap();
 	vfs_bootstrap();
 	kheap_nextgeneration();
+#if OPT_RUDEVM 
+	swap_init();
+#endif
 
 	/* Probe and initialize devices. Interrupts should come on. */
 	kprintf("Device probe...\n");
