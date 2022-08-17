@@ -121,7 +121,7 @@ boot(void)
 	vfs_bootstrap();
 	kheap_nextgeneration();
 #if OPT_RUDEVM 
-	swap_init();
+	swap_bootstrap();
 #endif
 
 	/* Probe and initialize devices. Interrupts should come on. */
