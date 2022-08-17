@@ -210,6 +210,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 				load_page(curproc->p_vnode, elf_offset, page_paddr);
 				pt_set_entry(as, faultaddress, page_paddr, 0, IN_MEMORY);
 			}
+			break;
 		case IN_MEMORY:
 			break;
 		default:
