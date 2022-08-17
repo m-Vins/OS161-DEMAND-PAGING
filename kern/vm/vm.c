@@ -58,12 +58,12 @@ vm_can_sleep(void)
  */
 static
 paddr_t
-getppages(unsigned long npages, char kernel)
+getppages(unsigned long npages, struct addrspace *p_addrspace)
 {
 	paddr_t addr;
 
 	spinlock_acquire(&vm_lock);
-	addr = coremap_getppages(npages,kernel);
+	addr = coremap_getppages(npages, p_addrspace);
 	spinlock_release(&vm_lock);
 	
 	return addr;
@@ -89,7 +89,7 @@ alloc_kpages(unsigned npages)
 	paddr_t pa;
 
 	vm_can_sleep();
-	pa = getppages(npages, COREMAP_KERNEL);
+	pa = getppages(npages, NULL);
 	if (pa==0) {
 		return 0;
 	}
@@ -114,10 +114,20 @@ static
 paddr_t 
 alloc_upage(){
 	paddr_t pa;
+	struct addrspace *cur_as;
+
+	cur_as = proc_getas();
 
 	/* the user can alloc one page at a time */
-	pa = getppages(1, COREMAP_USER);
-	
+	pa = getppages(1, cur_as);
+
+	/* Memory is full, need to swap out */
+	if(pa == 0)
+	{
+		pa = coremap_swapout(cur_as);
+	}
+
+	KASSERT(pa != 0);
 	return pa;
 }
 
@@ -205,9 +215,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			{
 				elf_offset = as_get_elf_offset(as, faultaddress);
 				page_paddr = alloc_upage();
-				if(page_paddr == 0){
-					panic("not enough memory, swap still not implemented!\n");
-				}
 				load_page(curproc->p_vnode, elf_offset, page_paddr);
 				pt_set_entry(as, faultaddress, page_paddr, 0, IN_MEMORY);
 			}
@@ -216,9 +223,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			break;
 		case IN_SWAP:
 			page_paddr = alloc_upage();
-			if(page_paddr == 0){
-				panic("not enough memory, swap still not implemented!\n");
-			}
 			swap_in(page_paddr, pt_row->swap_index);
 			pt_set_entry(as, faultaddress, page_paddr, 0, IN_MEMORY);
 			break;

@@ -3,12 +3,15 @@
 #include <lib.h>
 #include <coremap.h>
 #include <mainbus.h>
+#include <swapfile.h>
+#include <pt.h>
 
 vaddr_t firstfree; /* first free virtual address; set by start.S */
 
 
 static int nRamFrames = 0; /* number of ram frames */
 struct coremap_entry *coremap;
+int victim_index;
 
 
 /**
@@ -24,6 +27,9 @@ void coremap_bootstrap(){
   int coremap_pages;
   int kernel_pages;
   int i;
+
+  /* Initialize variable for victim finding */
+	victim_index = 0;
 
   /* Get size of RAM. */
   lastpaddr = mainbus_ramsize();
@@ -67,7 +73,7 @@ void coremap_bootstrap(){
   {
     coremap[i].allocSize = 0;
     coremap[i].used = 0;
-    coremap[i].kernel = 0;
+    coremap[i].p_addrspace = NULL;
   }
 
   /* 
@@ -77,7 +83,6 @@ void coremap_bootstrap(){
   for (i = 0; i < kernel_pages + coremap_pages; i++)
   {
     coremap[i].used = 1;
-    coremap[i].kernel = 1;
   }
 
 }
@@ -85,10 +90,11 @@ void coremap_bootstrap(){
 /**
  * @brief get npages from the ram.
  * 
- * @param npages 
+ * @param npages
+ * @param p_addrspace
  * @return paddr_t of the pages, 0 if no pages are available.
  */
-paddr_t coremap_getppages(int npages, char kernel)
+paddr_t coremap_getppages(int npages, struct addrspace *p_addrspace)
 {
   int end;
   int beginning;
@@ -124,7 +130,7 @@ paddr_t coremap_getppages(int npages, char kernel)
   for (i = 0; i < npages; i++)
   {
     coremap[beginning + i].used = 1;
-    coremap[beginning + i].kernel = kernel;
+    coremap[beginning + i].p_addrspace = p_addrspace;
   }
   
 
@@ -153,4 +159,44 @@ void coremap_freeppages(paddr_t addr){
 
 }
 
+/**
+ * @brief swap out a frame and return its physical address
+ * 
+ * @param p_addrspace 
+ */
+paddr_t
+coremap_swapout(struct addrspace *p_addrspace)
+{
+  int i;
+  int swap_index;
+  struct pt_entry *old_pt_entry;
 
+  for(i=0; i<nRamFrames; i++)
+  {
+    victim_index = (victim_index + 1) % nRamFrames;
+    if(coremap[victim_index].p_addrspace != NULL)
+    {
+      KASSERT(coremap[victim_index].used == 1);
+      KASSERT(coremap[victim_index].allocSize == 1);
+
+      /* Swap out and obtain swap index */
+      swap_index = swap_out(victim_index * PAGE_SIZE);
+
+      /* Obtain the pt_entry from the old address space */
+      old_pt_entry = pt_get_entry_from_paddr(coremap[victim_index].p_addrspace, victim_index * PAGE_SIZE);
+
+      /* Remove frame index, set swap index and set as swapped out */
+      old_pt_entry->frame_index = 0;
+      old_pt_entry->swap_index = swap_index;
+      old_pt_entry->status=IN_SWAP;
+
+      /* Assign the new address space */
+      coremap[victim_index].p_addrspace = p_addrspace;
+
+      victim_index = (victim_index + 1) % nRamFrames;
+      return victim_index * PAGE_SIZE;
+    }
+  }
+
+  panic("coremap_swapout should not return");
+}
