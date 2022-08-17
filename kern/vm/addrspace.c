@@ -83,7 +83,10 @@ void
 as_destroy(struct addrspace *as)
 {
 	KASSERT(as != NULL);
+	
+	int pt_size = as->s_data->npages + as->s_text->npages + as->s_stack->npages;
 
+	pt_empty(as->as_ptable, pt_size);
 	pt_destroy(as->as_ptable);
 	segment_destroy(as->s_text);
 	segment_destroy(as->s_data);

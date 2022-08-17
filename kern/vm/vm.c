@@ -109,7 +109,6 @@ free_kpages(vaddr_t addr)
  * 
  * @return paddr_t the virtual address of the allocated frame
  */
-static
 paddr_t 
 alloc_upage(){
 	paddr_t pa;
@@ -125,10 +124,10 @@ alloc_upage(){
  * 
  * @param addr 
  */
-// static
-// void free_upage(paddr_t addr){
-// 	freeppages(addr);
-// };
+
+void free_upage(paddr_t addr){
+	freeppages(addr);
+};
 
 void
 vm_tlbshootdown(const struct tlbshootdown *ts)

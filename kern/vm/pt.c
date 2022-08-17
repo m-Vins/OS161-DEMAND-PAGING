@@ -141,3 +141,14 @@ void pt_destroy(struct pt_entry* entry)
     kfree(entry);
 }
 
+void pt_empty(struct pt_entry* pt, int size){
+
+    KASSERT(pt != NULL);
+    for(int i = 0; i < size; i++){
+        if( pt[i].status == IN_MEMORY) {
+            paddr_t paddr = ( pt[i].frame_index ) << 12;
+            free_upage(paddr);
+        }
+    }
+
+}

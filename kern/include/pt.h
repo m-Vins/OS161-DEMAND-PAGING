@@ -25,6 +25,7 @@ struct pt_entry
 struct pt_entry *pt_get_entry(struct addrspace *as, const vaddr_t vaddr);
 struct pt_entry *pt_create(unsigned long pagetable_size);
 int pt_set_entry(struct addrspace *as, vaddr_t vaddr, paddr_t paddr, unsigned int swap_index, unsigned char status);
+void pt_empty(struct pt_entry* pt, int size);
 void pt_destroy(struct pt_entry*);
 
 #endif /* OPT_RUDEVM */
