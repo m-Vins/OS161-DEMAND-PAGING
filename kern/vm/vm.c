@@ -209,6 +209,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			if(seg_type == SEGMENT_STACK)
 			{
 				page_paddr = alloc_upage();
+				bzero((void *)PADDR_TO_KVADDR(page_paddr), PAGE_SIZE);
 				pt_set_entry(as, faultaddress, page_paddr, 0, IN_MEMORY);
 			}
 			else
@@ -229,6 +230,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		default:
 			panic("Cannot resolve fault");
 	}
+
 	if(seg_type != 0){
 		readonly =  seg_type == SEGMENT_TEXT ;
 	}
