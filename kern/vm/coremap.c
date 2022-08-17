@@ -194,6 +194,7 @@ coremap_swapout(struct addrspace *p_addrspace)
       coremap[victim_index].p_addrspace = p_addrspace;
 
       victim_index = (victim_index + 1) % nRamFrames;
+				bzero((void *)PADDR_TO_KVADDR(victim_index * PAGE_SIZE), PAGE_SIZE);
       return victim_index * PAGE_SIZE;
     }
   }
