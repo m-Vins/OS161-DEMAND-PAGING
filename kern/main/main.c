@@ -120,9 +120,6 @@ boot(void)
 	hardclock_bootstrap();
 	vfs_bootstrap();
 	kheap_nextgeneration();
-#if OPT_RUDEVM 
-	swap_bootstrap();
-#endif
 
 	/* Probe and initialize devices. Interrupts should come on. */
 	kprintf("Device probe...\n");
@@ -135,6 +132,9 @@ boot(void)
 	kheap_nextgeneration();
 
 	/* Late phase of initialization. */
+#if OPT_RUDEVM 
+	swap_bootstrap();
+#endif
 	vm_bootstrap();
 	kprintf_bootstrap();
 	thread_start_cpus();
