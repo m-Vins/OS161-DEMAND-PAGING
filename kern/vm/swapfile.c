@@ -12,7 +12,7 @@ static bool swap_active = false;
 
 // TODO: spinlock
 
-void swap_init(void)
+void swap_bootstrap(void)
 {
     int err;
     char swapfile_name[16];

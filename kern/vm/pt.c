@@ -152,3 +152,23 @@ void pt_empty(struct pt_entry* pt, int size){
     }
 
 }
+
+struct pt_entry *
+pt_get_entry_from_paddr(struct addrspace *as, const paddr_t paddr)
+{
+    int i;
+    int n;
+    unsigned int frame_index;
+
+    frame_index = paddr / PAGE_SIZE;
+    n = as->s_data->npages + as->s_text->npages + as->s_stack->npages;
+    for(i=0; i<n; i++)
+    {
+        if(as->as_ptable[i].frame_index == frame_index)
+        {
+            return &as->as_ptable[i];
+        }
+    }
+
+    return NULL;
+}
