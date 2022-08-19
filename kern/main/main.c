@@ -52,6 +52,7 @@
 #include "autoconf.h"  // for pseudoconfig
 #include "opt-rudevm.h"
 #if OPT_RUDEVM 
+#include "opt-swap.h"
 #include <coremap.h>
 #include <swapfile.h>
 #endif
@@ -132,7 +133,7 @@ boot(void)
 	kheap_nextgeneration();
 
 	/* Late phase of initialization. */
-#if OPT_RUDEVM 
+#if OPT_SWAP 
 	swap_bootstrap();
 #endif
 	vm_bootstrap();
