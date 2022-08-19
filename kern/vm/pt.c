@@ -4,6 +4,7 @@
 #include <segment.h>
 #include <current.h>
 #include <kern/errno.h>
+#include <swapfile.h>
 
 /**
  * The page table is an array of entries where each of them 
@@ -148,6 +149,10 @@ void pt_empty(struct pt_entry* pt, int size){
         if( pt[i].status == IN_MEMORY) {
             paddr_t paddr = ( pt[i].frame_index ) << 12;
             free_upage(paddr);
+        }
+        else if (pt[i].status == IN_SWAP)
+        {
+            swap_free(pt[i].swap_index);
         }
     }
 

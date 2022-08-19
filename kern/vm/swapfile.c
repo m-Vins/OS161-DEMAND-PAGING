@@ -83,3 +83,8 @@ unsigned int swap_out(paddr_t page_paddr)
 
     return swap_index;
 }
+
+void swap_free(unsigned int swap_index)
+{
+    bitmap_unmark(swapmap, swap_index);
+}
