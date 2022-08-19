@@ -156,10 +156,10 @@ void coremap_freeppages(paddr_t addr)
   KASSERT(nRamFrames > first);
   KASSERT(allocSize != 0);
 
-  for (i = first; i < allocSize; i++)
+  for (i = 0; i < allocSize; i++)
   {
-    KASSERT(coremap[i].used == 1);
-    coremap[i].used = 0;
+    KASSERT(coremap[first + i].used == 1);
+    coremap[first + i].used = 0;
   }
 }
 
