@@ -138,25 +138,29 @@ paddr_t coremap_getppages(int npages, struct addrspace *p_addrspace)
 }
 
 /**
- * @brief free the allocated pages starting from addr
+ * @brief free the allocated pages starting from addr. Sets the used bit to 0.
  * 
  * @param addr 
  */
-void coremap_freeppages(paddr_t addr){
-  long i,first = addr / PAGE_SIZE;
-  long allocSize = coremap[first].allocSize;
+void coremap_freeppages(paddr_t addr)
+{
+  long i;
+  long first;
+  long allocSize;
 
+  KASSERT(addr % PAGE_SIZE == 0);
+
+  first = addr / PAGE_SIZE;
+  allocSize = coremap[first].allocSize;
 
   KASSERT(nRamFrames > first);
   KASSERT(allocSize != 0);
-  
 
-  for(i = first; i<allocSize; i++){
+  for (i = first; i < allocSize; i++)
+  {
+    KASSERT(coremap[i].used == 1);
     coremap[i].used = 0;
   }
-
-  coremap[first].allocSize = 0;
-
 }
 
 /**
