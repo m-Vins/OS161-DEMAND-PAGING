@@ -8,7 +8,6 @@
 
 static struct vnode *swapfile;
 static struct bitmap *swapmap;
-static bool swap_active = false;
 
 // TODO: spinlock
 
@@ -27,8 +26,6 @@ void swap_bootstrap(void)
     }
 
     swapmap = bitmap_create(SWAPFILE_SIZE / PAGE_SIZE);
-
-    swap_active = true;
 }
 
 void swap_in(paddr_t page_paddr, unsigned int swap_index)
@@ -38,7 +35,6 @@ void swap_in(paddr_t page_paddr, unsigned int swap_index)
     struct iovec iov;
     struct uio ku;
 
-    KASSERT(swap_active);
     KASSERT(page_paddr % PAGE_SIZE == 0);
     KASSERT(swap_index < SWAPFILE_SIZE / PAGE_SIZE);
     KASSERT(bitmap_isset(swapmap, swap_index));
@@ -63,7 +59,6 @@ unsigned int swap_out(paddr_t page_paddr)
     struct iovec iov;
     struct uio ku;
 
-    KASSERT(swap_active);
     KASSERT(page_paddr % PAGE_SIZE == 0);
 
     err = bitmap_alloc(swapmap, &swap_index);
