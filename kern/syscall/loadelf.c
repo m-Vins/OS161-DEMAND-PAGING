@@ -57,6 +57,7 @@
 #include <proc.h>
 #include <current.h>
 #include <addrspace.h>
+#include <vm.h>
 #include <vnode.h>
 #include <elf.h>
 #include "opt-rudevm.h"

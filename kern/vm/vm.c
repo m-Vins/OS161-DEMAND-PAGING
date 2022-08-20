@@ -8,9 +8,9 @@
 #include <current.h>
 #include <mips/tlb.h>
 #include <addrspace.h>
+#include <pt.h>
 #include <vm.h>
 #include <coremap.h>
-#include <addrspace.h>
 #include <vm_tlb.h>
 #include "opt-rudevm.h"
 #include "syscall.h"
@@ -19,9 +19,6 @@
 #if OPT_RUDEVM
 /* under vm, always have 72k of user stack */
 /* (this must be > 64K so argument blocks of size ARG_MAX will fit) */
-
-
-static struct spinlock vm_lock = SPINLOCK_INITIALIZER;
 
 void
 vm_bootstrap(void)
@@ -53,19 +50,20 @@ vm_can_sleep(void)
  * @brief get npages from the coremap.
  * 
  * @param npages 
- * @param kernel KERNEL if the page is requested from the kernel, USER otherwise.
+ * @param ptentry pointer to the pt entry, NULL if kernel's page.
  * @return paddr_t the first physical address of the requested pages.
  */
 static
 paddr_t
-getppages(unsigned long npages, struct addrspace *p_addrspace)
+getppages(unsigned long npages, struct pt_entry *ptentry)
 {
 	paddr_t addr;
 
-	spinlock_acquire(&vm_lock);
-	addr = coremap_getppages(npages, p_addrspace);
-	spinlock_release(&vm_lock);
-	
+	addr = coremap_getppages(npages, ptentry);
+	if (addr == 0) {
+		panic("Out of memory");
+	}
+
 	return addr;
 }
 
@@ -77,9 +75,7 @@ getppages(unsigned long npages, struct addrspace *p_addrspace)
 static 
 void
 freeppages(paddr_t addr){
-	spinlock_acquire(&vm_lock);
 	coremap_freeppages(addr);
-	spinlock_release(&vm_lock);
 } 
 
 /* Allocate/free some kernel-space virtual pages */
@@ -90,9 +86,6 @@ alloc_kpages(unsigned npages)
 
 	vm_can_sleep();
 	pa = getppages(npages, NULL);
-	if (pa==0) {
-		return 0;
-	}
 	return PADDR_TO_KVADDR(pa);
 }
 
@@ -110,23 +103,13 @@ free_kpages(vaddr_t addr)
  * 
  * @return paddr_t the virtual address of the allocated frame
  */
-paddr_t 
-alloc_upage(){
+paddr_t
+alloc_upage(struct pt_entry *pt_row){
 	paddr_t pa;
-	struct addrspace *cur_as;
 
-	cur_as = proc_getas();
-
+	vm_can_sleep();
 	/* the user can alloc one page at a time */
-	pa = getppages(1, cur_as);
-
-	/* Memory is full, need to swap out */
-	if(pa == 0)
-	{
-		pa = coremap_swapout(cur_as);
-	}
-
-	KASSERT(pa != 0);
+	pa = getppages(1, pt_row);
 	return pa;
 }
 
@@ -201,30 +184,26 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	KASSERT(as->as_ptable != NULL);
 
 	pt_row = pt_get_entry(as, faultaddress);
+	seg_type = as_get_segment_type(as, faultaddress);
 	switch(pt_row->status)
 	{
 		case NOT_LOADED:
-			seg_type = as_get_segment_type(as, faultaddress);
 			if(seg_type == SEGMENT_STACK)
 			{
-				page_paddr = alloc_upage();
-				bzero((void *)PADDR_TO_KVADDR(page_paddr), PAGE_SIZE);
-				pt_set_entry(as, faultaddress, page_paddr, 0, IN_MEMORY);
+				alloc_upage(pt_row);
 			}
 			else
 			{
 				elf_offset = as_get_elf_offset(as, faultaddress);
-				page_paddr = alloc_upage();
+				page_paddr = alloc_upage(pt_row);
 				load_page(curproc->p_vnode, elf_offset, page_paddr);
-				pt_set_entry(as, faultaddress, page_paddr, 0, IN_MEMORY);
 			}
 			break;
 		case IN_MEMORY:
 			break;
 		case IN_SWAP:
-			page_paddr = alloc_upage();
+			page_paddr = alloc_upage(pt_row);
 			swap_in(page_paddr, pt_row->swap_index);
-			pt_set_entry(as, faultaddress, page_paddr, 0, IN_MEMORY);
 			break;
 		default:
 			panic("Cannot resolve fault");

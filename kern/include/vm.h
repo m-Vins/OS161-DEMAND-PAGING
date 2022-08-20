@@ -37,6 +37,7 @@
  */
 
 
+#include <pt.h>
 #include <machine/vm.h>
 
 /* Fault-type arguments to vm_fault() */
@@ -57,7 +58,7 @@ void free_kpages(vaddr_t addr);
 
 /* Allocate/free user pages */
 void free_upage(paddr_t addr);
-paddr_t alloc_upage(void);
+paddr_t alloc_upage(struct pt_entry *pt_row);
 
 /* TLB shootdown handling called from interprocessor_interrupt */
 void vm_tlbshootdown(const struct tlbshootdown *);

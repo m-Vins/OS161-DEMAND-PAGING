@@ -35,7 +35,6 @@
  */
 
 
-#include <vm.h>
 #include "opt-dumbvm.h"
 #include "opt-rudevm.h"
 

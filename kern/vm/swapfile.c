@@ -9,8 +9,6 @@
 static struct vnode *swapfile;
 static struct bitmap *swapmap;
 
-// TODO: spinlock
-
 void swap_bootstrap(void)
 {
     int err;

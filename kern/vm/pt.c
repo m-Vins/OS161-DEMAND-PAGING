@@ -5,6 +5,7 @@
 #include <current.h>
 #include <kern/errno.h>
 #include <swapfile.h>
+#include <vm.h>
 #include "opt-swap.h"
 
 /**
@@ -112,29 +113,6 @@ struct pt_entry *pt_get_entry(struct addrspace *as, const vaddr_t vaddr)
     int pt_index = pt_get_index(as, vaddr);
     
     return &as->as_ptable[pt_index];
-}
-
-int pt_set_entry(struct addrspace *as, vaddr_t vaddr, paddr_t paddr, unsigned int swap_index, unsigned char status){
-
-    KASSERT(as != NULL);
-    KASSERT(status == NOT_LOADED || status == IN_SWAP || status == IN_MEMORY);
-    KASSERT(    (paddr == 0 && swap_index != 0 && status == IN_SWAP) 
-            ||  (paddr != 0 && swap_index == 0 && status == IN_MEMORY) 
-            ||  (paddr == 0 && swap_index == 0 && status == NOT_LOADED) );
-
-    
-
-    struct pt_entry *entry = pt_get_entry(as, vaddr);
-    if(entry == NULL){
-        return -1;
-    }    
-
-    entry->frame_index = (unsigned int)(paddr>>12);
-    entry->swap_index = swap_index;
-    entry->status = status;
-
-    return 1; 
-
 }
 
 void pt_destroy(struct pt_entry* entry) 

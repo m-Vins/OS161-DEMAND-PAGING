@@ -48,6 +48,7 @@
 #include <current.h>
 #include <synch.h>
 #include <addrspace.h>
+#include <vm.h>
 #include <mainbus.h>
 #include <vnode.h>
 #include "opt-waitpid.h"
