@@ -83,6 +83,7 @@ void coremap_bootstrap(){
   for (i = 0; i < kernel_pages + coremap_pages; i++)
   {
     coremap[i].used = 1;
+    coremap[i].allocSize = 1;
   }
 
 }
@@ -108,7 +109,7 @@ paddr_t coremap_getppages(int npages, struct addrspace *p_addrspace)
     if (coremap[end].used == 1)
     {
       beginning = -1;
-      end += coremap[end].used;
+      end += coremap[end].allocSize;
     }
     else // frame is free
     {
