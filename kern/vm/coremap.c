@@ -53,6 +53,7 @@ void coremap_bootstrap(){
   firstpaddr = firstfree - MIPS_KSEG0;
 
   KASSERT(lastpaddr % PAGE_SIZE == 0);
+  KASSERT(firstpaddr % PAGE_SIZE == 0);
 
   nRamFrames = lastpaddr / PAGE_SIZE;
 
