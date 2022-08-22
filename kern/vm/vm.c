@@ -23,7 +23,7 @@
 void
 vm_bootstrap(void)
 {
-	/* Do nothing. */
+	swap_bootstrap();
 }
 
 /*
