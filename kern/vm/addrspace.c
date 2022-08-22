@@ -133,7 +133,7 @@ as_deactivate(void)
  * want to implement them.
  */
 int
-as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t elf_offset,
+as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t elf_offset, size_t elfsize,
 		 int readable, int writeable, int executable)
 {
 	size_t npages;
@@ -145,10 +145,11 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t elf_
 	/* Align the region. First, the base... */
 	memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
 	vaddr &= PAGE_FRAME;
+	
 
 	/* ...and now the length. */
 	memsize = (memsize + PAGE_SIZE - 1) & PAGE_FRAME;
-
+	
 	npages = memsize / PAGE_SIZE;
 
 	/* We don't use these - all pages are read-write */
@@ -158,13 +159,13 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t elf_
 
 	if (as->s_text == NULL) {
 		as->s_text = segment_create();
-		segment_define(as->s_text, elf_offset, vaddr, npages);
+		segment_define(as->s_text, elf_offset, vaddr, npages, elfsize);
 		return 0;
 	}
 
 	if (as->s_data == NULL) {
 		as->s_data = segment_create();
-		segment_define(as->s_data, elf_offset, vaddr, npages);
+		segment_define(as->s_data, elf_offset, vaddr, npages, elfsize);
 		return 0;
 	}
 
@@ -181,7 +182,7 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 	KASSERT(as != NULL);
 
 	as->s_stack = segment_create();
-	segment_define(as->s_stack, 0, USERSTACK - VM_STACKPAGES * PAGE_SIZE, VM_STACKPAGES);
+	segment_define(as->s_stack, 0, USERSTACK - VM_STACKPAGES * PAGE_SIZE, VM_STACKPAGES, 0);
 	
 	/* Initial user-level stack pointer */
 	*stackptr = USERSTACK;
@@ -238,6 +239,21 @@ as_get_elf_offset(struct addrspace *as, vaddr_t vaddr)
 	}
 
 	return seg->elf_offset - seg->base_vaddr + vaddr;
+}
+
+bool as_check_in_elf(struct addrspace *as, vaddr_t vaddr){
+	struct segment *seg;
+
+	KASSERT(as != NULL);
+
+	seg = as_get_segment(as, vaddr);
+	if(seg == NULL)
+	{
+		panic("Cannot retrieve as segment");
+	}
+
+	if(vaddr - seg -> base_vaddr <= seg->elfsize ) return true;
+	return false;
 }
 
 int

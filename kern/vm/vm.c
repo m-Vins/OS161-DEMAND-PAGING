@@ -194,9 +194,14 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			}
 			else
 			{
-				elf_offset = as_get_elf_offset(as, faultaddress);
 				page_paddr = alloc_upage(pt_row);
-				load_page(curproc->p_vnode, elf_offset, page_paddr);
+				if(as_check_in_elf(as,faultaddress)){
+					elf_offset = as_get_elf_offset(as, faultaddress);
+					load_page(curproc->p_vnode, elf_offset, page_paddr);
+				}
+				pt_row -> frame_index = page_paddr / 4096;
+				pt_row -> status = IN_MEMORY ;
+
 			}
 			break;
 		case IN_MEMORY:

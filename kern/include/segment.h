@@ -9,12 +9,13 @@
 struct segment {
     off_t elf_offset;
     vaddr_t base_vaddr;
+    size_t elfsize;
     size_t npages;
 
 };
 
 struct segment *segment_create(void);
-void segment_define(struct segment *seg, off_t elf_offset, vaddr_t base_vaddr, size_t npages); 
+void segment_define(struct segment *seg, off_t elf_offset, vaddr_t base_vaddr, size_t npages, size_t elfsize); 
 void segment_destroy(struct segment *seg);
 
 #endif /* OPT_RUDEVM */
