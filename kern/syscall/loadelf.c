@@ -79,13 +79,13 @@
  */
 #if OPT_RUDEVM
 int
-load_page(struct vnode *v, off_t offset, paddr_t page_paddr)
+load_page(struct vnode *v, off_t offset, paddr_t page_paddr, size_t size)
 {
 	struct iovec iov;
     struct uio ku;
 	int result;
 
-	uio_kinit(&iov, &ku, (void *)PADDR_TO_KVADDR(page_paddr), PAGE_SIZE, offset, UIO_READ);
+	uio_kinit(&iov, &ku, (void *)PADDR_TO_KVADDR(page_paddr), size, offset, UIO_READ);
     result = VOP_READ(v, &ku);
     if (result)
     {

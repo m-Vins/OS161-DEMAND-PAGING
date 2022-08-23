@@ -136,7 +136,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	struct pt_entry *pt_row;
 	struct addrspace *as;
 	paddr_t page_paddr;
-	off_t elf_offset;
+	//off_t elf_offset;
 	int seg_type = 0;
 	int readonly;
 	
@@ -196,8 +196,9 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			{
 				page_paddr = alloc_upage(pt_row);
 				if(as_check_in_elf(as,faultaddress)){
-					elf_offset = as_get_elf_offset(as, faultaddress);
-					load_page(curproc->p_vnode, elf_offset, page_paddr);
+					// elf_offset = as_get_elf_offset(as, faultaddress);
+					// load_page(curproc->p_vnode, elf_offset, page_paddr);
+					as_load_page(as,curproc->p_vnode,faultaddress);
 				}
 
 			}

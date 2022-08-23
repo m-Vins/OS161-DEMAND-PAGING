@@ -155,7 +155,8 @@ bool              as_check_in_elf(struct addrspace *as, vaddr_t vaddr);
 int load_elf(struct vnode *v, vaddr_t *entrypoint);
 
 #if OPT_RUDEVM
-int load_page(struct vnode *v, off_t offset, paddr_t page_paddr);
+int load_page(struct vnode *v, off_t offset, paddr_t page_paddr,size_t size);
+int as_load_page(struct addrspace *as,struct vnode *vnode, vaddr_t faultaddress);
 #endif
 
 #endif /* _ADDRSPACE_H_ */
