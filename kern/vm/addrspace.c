@@ -288,17 +288,17 @@ int as_load_page(struct addrspace *as,struct vnode *vnode, vaddr_t faultaddress)
 	size_t size;				/* 	size of memory to load from elf 	*/
 	paddr_t target_addr;
 
-	pt_row = pt_get_entry(as,faultaddress);
+	pt_row = pt_get_entry(as,faultaddress );
 	segment = as_get_segment(as,faultaddress);
 
-	if(segment->base_vaddr == faultaddress){
+	if(segment->base_vaddr == ( faultaddress & PAGE_FRAME )){
 		/*	first page of the segment	*/
 
 		size = PAGE_SIZE -( segment->first_vaddr & ~PAGE_FRAME );
 		offset = segment->elf_offset;
 		target_addr = pt_row->frame_index * PAGE_SIZE + ( segment->first_vaddr & ~PAGE_FRAME ) ;
 
-	}else if((segment->last_vaddr & PAGE_FRAME) == (faultaddress)){
+	}else if((segment->last_vaddr & PAGE_FRAME) == (( faultaddress & PAGE_FRAME ))){
 		/* 	last page of the segment	*/
 
 		size = ( segment->last_vaddr & ~PAGE_FRAME );
@@ -312,7 +312,7 @@ int as_load_page(struct addrspace *as,struct vnode *vnode, vaddr_t faultaddress)
 
 		size = PAGE_SIZE;
 		offset = segment->elf_offset + 									/*	offset within the elf	*/
-				faultaddress - segment->base_vaddr - 
+				( faultaddress & PAGE_FRAME ) - segment->base_vaddr - 
 				PAGE_SIZE -( segment->first_vaddr & ~PAGE_FRAME );
 		target_addr = pt_row->frame_index * PAGE_SIZE;
 
