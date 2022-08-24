@@ -254,7 +254,10 @@ bool as_check_in_elf(struct addrspace *as, vaddr_t vaddr){
 		panic("Cannot retrieve as segment");
 	}
 
-	if(vaddr - seg -> base_vaddr <= seg->elfsize ) return true;
+	KASSERT(vaddr >= seg->first_vaddr);
+	KASSERT(vaddr < seg->last_vaddr);
+
+	if(vaddr - seg -> base_vaddr <= ((seg->elfsize + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE ) return true;
 	return false;
 }
 
