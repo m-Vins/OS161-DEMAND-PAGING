@@ -16,7 +16,8 @@
  */
 void tlb_invalidate(void);
 void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro);
-void tlb_remove(vaddr_t vaddr);
+void tlb_remove_by_vaddr(vaddr_t vaddr);
+void tlb_remove_by_paddr(paddr_t paddr);
 
 #endif /* OPT_RUDEVM */
 

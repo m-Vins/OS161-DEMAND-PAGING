@@ -44,11 +44,25 @@ void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro)
     splx(spl);
 }
 
-void tlb_remove(vaddr_t vaddr)
+void tlb_remove_by_vaddr(vaddr_t vaddr)
 {
     int index;
 
     index = tlb_probe(vaddr, 0);
     if (index >= 0)
         tlb_write(TLBHI_INVALID(index), TLBLO_INVALID(), index);
+}
+
+void tlb_remove_by_paddr(paddr_t paddr) {
+    
+    KASSERT(paddr % PAGE_SIZE == 0);
+
+    for (int i = 0; i < NUM_TLB; i++) {
+        uint32_t ehi, elo;
+        tlb_read(&ehi, &elo, i);
+        if (paddr == (elo & PAGE_FRAME)) {
+            tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
+            return;
+        }
+    }
 }

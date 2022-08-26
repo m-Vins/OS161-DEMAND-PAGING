@@ -5,6 +5,7 @@
 #include <vfs.h>
 #include <vm.h>
 #include <vnode.h>
+#include <vm_tlb.h>
 
 static struct vnode *swapfile;
 static struct bitmap *swapmap;
@@ -73,6 +74,8 @@ unsigned int swap_out(paddr_t page_paddr)
     {
         panic("Error swapping out\n");
     }
+
+    tlb_remove_by_paddr(page_paddr);
 
     return swap_index;
 }
