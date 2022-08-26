@@ -69,7 +69,7 @@ void coremap_bootstrap(){
    * the pages right after firstfree as used.
    */
   coremap_size = sizeof(struct coremap_entry) * nRamFrames;
-  coremap_pages = (coremap_size + PAGE_SIZE - 1) / PAGE_SIZE;
+  coremap_pages = DIVROUNDUP(coremap_size, PAGE_SIZE);
   kernel_pages = firstpaddr / PAGE_SIZE;
 
   /*  Initialize the coremap. */

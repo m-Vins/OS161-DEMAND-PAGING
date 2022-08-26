@@ -56,7 +56,7 @@ static int pt_get_index(struct addrspace *as, vaddr_t vaddr){
     
     KASSERT(as != NULL);
 
-    if (vaddr >= as->s_text->base_vaddr && vaddr < as->s_text->base_vaddr + as->s_text->npages * PAGE_SIZE)
+    if (vaddr >= as->s_text->first_vaddr && vaddr < as->s_text->last_vaddr)
     {
         pt_index = ( vaddr - as->s_text->base_vaddr ) / PAGE_SIZE;
         KASSERT(pt_index < as->s_text->npages);
@@ -64,7 +64,7 @@ static int pt_get_index(struct addrspace *as, vaddr_t vaddr){
     }
     previous_pages += as->s_text->npages;
 
-    if (vaddr >= as->s_data->base_vaddr && vaddr < as->s_data->base_vaddr + as->s_data->npages * PAGE_SIZE)
+    if (vaddr >= as->s_data->first_vaddr && vaddr < as->s_data->last_vaddr)
     {
         pt_index = previous_pages + ( vaddr - as->s_data->base_vaddr ) / PAGE_SIZE;
         KASSERT(pt_index <  previous_pages + as->s_data->npages);
@@ -72,14 +72,14 @@ static int pt_get_index(struct addrspace *as, vaddr_t vaddr){
     }
     previous_pages += as->s_data->npages;
 
-    if (vaddr >= as->s_stack->base_vaddr && vaddr < as->s_stack->base_vaddr + as->s_stack->npages * PAGE_SIZE)
+    if (vaddr >= as->s_stack->first_vaddr && vaddr < as->s_stack->last_vaddr)
     {
         pt_index = previous_pages + (vaddr - as->s_stack->base_vaddr) / PAGE_SIZE ;
         KASSERT(pt_index <  previous_pages + as->s_stack->npages);
         return pt_index;
     }
 
-    panic("vaddr out of range?!\n");
+    panic("vaddr out of range! (pt_get_index)\n");
     return 0;
 }
 
@@ -122,19 +122,25 @@ void pt_destroy(struct pt_entry* entry)
 }
 
 void pt_empty(struct pt_entry* pt, int size){
-
+    paddr_t paddr;
     KASSERT(pt != NULL);
+    KASSERT(pt != 0);
+
     for(int i = 0; i < size; i++){
-        if( pt[i].status == IN_MEMORY) {
-            paddr_t paddr = ( pt[i].frame_index ) << 12;
-            free_upage(paddr);
-        }
-#if OPT_SWAP
-        else if (pt[i].status == IN_SWAP)
+        switch (pt[i].status)
         {
-            swap_free(pt[i].swap_index);
-        }
+            case IN_MEMORY:
+                paddr = ( pt[i].frame_index ) * PAGE_SIZE;
+                free_upage(paddr);
+                break;
+#if OPT_SWAP
+            case IN_SWAP:
+                swap_free(pt[i].swap_index);
 #endif
+                break;
+            default:
+                break;
+        }
     }
 
 }
@@ -146,7 +152,7 @@ pt_get_entry_from_paddr(struct addrspace *as, const paddr_t paddr)
     int n;
     unsigned int frame_index;
 
-    frame_index = paddr / PAGE_SIZE;
+    frame_index = paddr & PAGE_FRAME;
     n = as->s_data->npages + as->s_text->npages + as->s_stack->npages;
     for(i=0; i<n; i++)
     {

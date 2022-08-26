@@ -174,7 +174,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t elf_
 	/*
 	 * Support for more than two regions is not available.
 	 */
-	kprintf("vm: Warning: too many regions\n");
+	panic("vm: Warning: too many regions");
 	return ENOSYS;
 }
 
@@ -184,7 +184,7 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 	KASSERT(as != NULL);
 
 	as->s_stack = segment_create();
-	segment_define(as->s_stack, 0, USERSTACK - VM_STACKPAGES * PAGE_SIZE, USERSTACK - VM_STACKPAGES * PAGE_SIZE, MIPS_KSEG0, VM_STACKPAGES, 0);
+	segment_define(as->s_stack, 0, USERSTACK - VM_STACKPAGES * PAGE_SIZE, USERSTACK - VM_STACKPAGES * PAGE_SIZE, USERSTACK, VM_STACKPAGES, 0);
 	
 	/* Initial user-level stack pointer */
 	*stackptr = USERSTACK;
@@ -224,24 +224,10 @@ as_get_segment(struct addrspace *as, vaddr_t vaddr){
         return as->s_stack;
     }
     
+	panic("vaddr out of range! (as_get_segment)");
     return NULL;
 }
 
-off_t
-as_get_elf_offset(struct addrspace *as, vaddr_t vaddr)
-{
-	struct segment *seg;
-
-	KASSERT(as != NULL);
-
-	seg = as_get_segment(as, vaddr);
-	if(seg == NULL)
-	{
-		panic("Cannot retrieve as segment");
-	}
-
-	return seg->elf_offset - seg->base_vaddr + vaddr;
-}
 
 bool as_check_in_elf(struct addrspace *as, vaddr_t vaddr){
 	struct segment *seg;
@@ -257,7 +243,7 @@ bool as_check_in_elf(struct addrspace *as, vaddr_t vaddr){
 	KASSERT(vaddr >= seg->first_vaddr);
 	KASSERT(vaddr < seg->last_vaddr);
 
-	if(vaddr - seg -> base_vaddr <= ((seg->elfsize + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE ) return true;
+	if(vaddr < ROUNDUP(seg->first_vaddr + seg->elfsize,PAGE_SIZE)) return true;
 	return false;
 }
 
@@ -281,7 +267,7 @@ as_get_segment_type(struct addrspace *as, vaddr_t vaddr)
         return SEGMENT_STACK;
     }
     
-    panic("Could not find the segment");
+    panic("vaddr out of range! (as_get_segment_type)");
 }
 
 int as_load_page(struct addrspace *as,struct vnode *vnode, vaddr_t faultaddress){
@@ -294,29 +280,34 @@ int as_load_page(struct addrspace *as,struct vnode *vnode, vaddr_t faultaddress)
 	pt_row = pt_get_entry(as,faultaddress );
 	segment = as_get_segment(as,faultaddress);
 
+	KASSERT(faultaddress < ROUNDUP(segment->first_vaddr + segment->elfsize,PAGE_SIZE));
+	KASSERT(faultaddress >= segment->base_vaddr);
+
 	if(segment->base_vaddr == ( faultaddress & PAGE_FRAME )){
 		/*	first page of the segment	*/
 
-		size = PAGE_SIZE -( segment->first_vaddr & ~PAGE_FRAME );
-		offset = segment->elf_offset;
+		size = PAGE_SIZE -( segment->first_vaddr & ~PAGE_FRAME ) > segment->elfsize ? 
+				segment->elfsize :
+				(PAGE_SIZE -( segment->first_vaddr & ~PAGE_FRAME )) ;
+		offset = segment->elf_offset ;
 		target_addr = pt_row->frame_index * PAGE_SIZE + ( segment->first_vaddr & ~PAGE_FRAME ) ;
 
-	}else if((segment->last_vaddr & PAGE_FRAME) == (( faultaddress & PAGE_FRAME ))){
-		/* 	last page of the segment	*/
+	}else if(((segment->first_vaddr + segment->elfsize) & PAGE_FRAME) == (( faultaddress & PAGE_FRAME ))){
+		/* 	last page of the segment (concerning the pages within the elf)	*/
 
 		size = ( segment->last_vaddr & ~PAGE_FRAME );
-		offset = segment->elf_offset + 									/*	offset within the elf	*/
-				PAGE_SIZE -( segment->first_vaddr & ~PAGE_FRAME ) + 	/* 	size of the first page	*/
-				( segment->npages - 2 ) * PAGE_SIZE ;					/*	pages in the middle		*/
+		offset = segment->elf_offset + 							/*	offset within the elf	*/
+				(faultaddress & PAGE_FRAME) -
+				segment->first_vaddr ;
 		target_addr = pt_row->frame_index * PAGE_SIZE;
 
 	}else{
 		/*	middle page of the segment	*/
 
 		size = PAGE_SIZE;
-		offset = segment->elf_offset + 									/*	offset within the elf	*/
-				( faultaddress & PAGE_FRAME ) - segment->base_vaddr - 
-				PAGE_SIZE -( segment->first_vaddr & ~PAGE_FRAME );
+		offset = segment->elf_offset + 							/*	offset within the elf	*/
+				(faultaddress & PAGE_FRAME) -
+				segment->first_vaddr ;
 		target_addr = pt_row->frame_index * PAGE_SIZE;
 
 	}
