@@ -23,7 +23,9 @@
 void
 vm_bootstrap(void)
 {
+#if OPT_SWAP
 	swap_bootstrap();
+#endif
 }
 
 /*
@@ -195,9 +197,14 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		case IN_MEMORY:
 			break;
 		case IN_SWAP:
+#if OPT_SWAP
 			page_paddr = alloc_upage(pt_row);
 			swap_in(page_paddr, pt_row->swap_index);
-			break;
+#else
+			(void)page_paddr; //to remove
+			panic("swap not implemented!");
+#endif
+		break;
 		default:
 			panic("Cannot resolve fault");
 	}

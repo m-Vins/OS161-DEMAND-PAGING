@@ -134,9 +134,7 @@ as_define_region(struct addrspace *as, vaddr_t first_vaddr, size_t memsize, off_
 	KASSERT(as != NULL);
 	KASSERT(memsize != 0);
 
-	/* Align the region. First, the base... */
 	memsize += first_vaddr & ~(vaddr_t)PAGE_FRAME;
-	/* ...and now the length. */
 	npages =  DIVROUNDUP(memsize,PAGE_SIZE);
 
 	base_vaddr = first_vaddr & PAGE_FRAME;
