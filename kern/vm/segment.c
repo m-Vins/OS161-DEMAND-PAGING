@@ -28,6 +28,11 @@ void segment_define(struct segment *seg, off_t elf_offset, vaddr_t base_vaddr, v
     KASSERT(seg->npages == 0);
     KASSERT(seg->elfsize == 0);
 
+    if (elfsize > (last_vaddr - first_vaddr)) {
+        kprintf("ELF: warning: segment filesize > segment memsize\n");
+        elfsize = last_vaddr - first_vaddr;
+	}
+
     seg->elf_offset = elf_offset;
     seg->base_vaddr = base_vaddr;
     seg->first_vaddr = first_vaddr;

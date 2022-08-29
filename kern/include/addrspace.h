@@ -122,10 +122,7 @@ void              as_destroy(struct addrspace *);
 int               as_define_region(struct addrspace *as,
                                    vaddr_t vaddr, size_t sz,
                                    off_t elf_offset,
-                                   size_t elfsize,
-                                   int readable,
-                                   int writeable,
-                                   int executable);
+                                   size_t elfsize);
 #else
 int               as_define_region(struct addrspace *as,
                                    vaddr_t vaddr, size_t sz,
@@ -142,6 +139,7 @@ int               as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
 int               as_define_pt(struct addrspace *as);
 int               as_get_segment_type(struct addrspace *as, vaddr_t vaddr);
 bool              as_check_in_elf(struct addrspace *as, vaddr_t vaddr);
+int               as_load_page(struct addrspace *as,struct vnode *vnode, vaddr_t faultaddress);
 #endif
 
 /*
@@ -154,8 +152,7 @@ bool              as_check_in_elf(struct addrspace *as, vaddr_t vaddr);
 int load_elf(struct vnode *v, vaddr_t *entrypoint);
 
 #if OPT_RUDEVM
-int load_page(struct vnode *v, off_t offset, paddr_t page_paddr,size_t size);
-int as_load_page(struct addrspace *as,struct vnode *vnode, vaddr_t faultaddress);
+void load_page(struct vnode *v, off_t offset, paddr_t page_paddr,size_t size);
 #endif
 
 #endif /* _ADDRSPACE_H_ */

@@ -63,6 +63,38 @@
 #include "opt-rudevm.h"
 #include <pt.h>
 
+
+#if OPT_RUDEVM
+/**
+ * @brief load a page from the elf file to the physical address page_paddr
+ * 
+ * @param v vnode of the elf
+ * @param offset offsett within the elf
+ * @param page_paddr target physical address for the coming page
+ * @param size size of the page
+ * @return int 
+ */
+void
+load_page(struct vnode *v, off_t offset, paddr_t page_paddr, size_t size)
+{
+	struct iovec iov;
+    struct uio ku;
+	int result;
+
+	uio_kinit(&iov, &ku, (void *)PADDR_TO_KVADDR(page_paddr), size, offset, UIO_READ);
+    result = VOP_READ(v, &ku);
+    if (result)
+    {
+        panic("Error loading page\n");
+    }
+
+	if (ku.uio_resid != 0) {
+		/* short read; problem with executable? */
+		panic("ELF: short read on segment - file truncated?");
+	}
+
+}
+#else
 /*
  * Load a segment at virtual address VADDR. The segment in memory
  * extends from VADDR up to (but not including) VADDR+MEMSIZE. The
@@ -77,24 +109,6 @@
  * change this code to not use uiomove, be sure to check for this case
  * explicitly.
  */
-#if OPT_RUDEVM
-int
-load_page(struct vnode *v, off_t offset, paddr_t page_paddr, size_t size)
-{
-	struct iovec iov;
-    struct uio ku;
-	int result;
-
-	uio_kinit(&iov, &ku, (void *)PADDR_TO_KVADDR(page_paddr), size, offset, UIO_READ);
-    result = VOP_READ(v, &ku);
-    if (result)
-    {
-        panic("Error loading page\n");
-    }
-
-	return 0;
-}
-#else
 static
 int
 load_segment(struct addrspace *as, struct vnode *v,
@@ -175,9 +189,6 @@ load_segment(struct addrspace *as, struct vnode *v,
 int
 load_elf(struct vnode *v, vaddr_t *entrypoint)
 {
-
-#if OPT_RUDEVM
-
 	Elf_Ehdr eh;   /* Executable header */
 	Elf_Phdr ph;   /* "Program header" = segment header */
 	int result, i;
@@ -268,125 +279,25 @@ load_elf(struct vnode *v, vaddr_t *entrypoint)
 			return ENOEXEC;
 		}
 
+#if OPT_RUDEVM
 		result = as_define_region(as,
 					  ph.p_vaddr, ph.p_memsz,
 					  ph.p_offset,
-					  ph.p_filesz,
-					  ph.p_flags & PF_R,
-					  ph.p_flags & PF_W,
-					  ph.p_flags & PF_X);
-		if (result) {
-			return result;
-		}
-	}
-
-	*entrypoint = eh.e_entry;
-
-	return 0;
-
-
+					  ph.p_filesz);
 #else
-
-	Elf_Ehdr eh;   /* Executable header */
-	Elf_Phdr ph;   /* "Program header" = segment header */
-	int result, i;
-	struct iovec iov;
-	struct uio ku;
-	struct addrspace *as;
-
-	as = proc_getas();
-
-	/*
-	 * Read the executable header from offset 0 in the file.
-	 */
-
-	uio_kinit(&iov, &ku, &eh, sizeof(eh), 0, UIO_READ);
-	result = VOP_READ(v, &ku);
-	if (result) {
-		return result;
-	}
-
-	if (ku.uio_resid != 0) {
-		/* short read; problem with executable? */
-		kprintf("ELF: short read on header - file truncated?\n");
-		return ENOEXEC;
-	}
-
-	/*
-	 * Check to make sure it's a 32-bit ELF-version-1 executable
-	 * for our processor type. If it's not, we can't run it.
-	 *
-	 * Ignore EI_OSABI and EI_ABIVERSION - properly, we should
-	 * define our own, but that would require tinkering with the
-	 * linker to have it emit our magic numbers instead of the
-	 * default ones. (If the linker even supports these fields,
-	 * which were not in the original elf spec.)
-	 */
-
-	if (eh.e_ident[EI_MAG0] != ELFMAG0 ||
-	    eh.e_ident[EI_MAG1] != ELFMAG1 ||
-	    eh.e_ident[EI_MAG2] != ELFMAG2 ||
-	    eh.e_ident[EI_MAG3] != ELFMAG3 ||
-	    eh.e_ident[EI_CLASS] != ELFCLASS32 ||
-	    eh.e_ident[EI_DATA] != ELFDATA2MSB ||
-	    eh.e_ident[EI_VERSION] != EV_CURRENT ||
-	    eh.e_version != EV_CURRENT ||
-	    eh.e_type!=ET_EXEC ||
-	    eh.e_machine!=EM_MACHINE) {
-		return ENOEXEC;
-	}
-
-	/*
-	 * Go through the list of segments and set up the address space.
-	 *
-	 * Ordinarily there will be one code segment, one read-only
-	 * data segment, and one data/bss segment, but there might
-	 * conceivably be more. You don't need to support such files
-	 * if it's unduly awkward to do so.
-	 *
-	 * Note that the expression eh.e_phoff + i*eh.e_phentsize is
-	 * mandated by the ELF standard - we use sizeof(ph) to load,
-	 * because that's the structure we know, but the file on disk
-	 * might have a larger structure, so we must use e_phentsize
-	 * to find where the phdr starts.
-	 */
-
-	for (i=0; i<eh.e_phnum; i++) {
-		off_t offset = eh.e_phoff + i*eh.e_phentsize;
-		uio_kinit(&iov, &ku, &ph, sizeof(ph), offset, UIO_READ);
-
-		result = VOP_READ(v, &ku);
-		if (result) {
-			return result;
-		}
-
-		if (ku.uio_resid != 0) {
-			/* short read; problem with executable? */
-			kprintf("ELF: short read on phdr - file truncated?\n");
-			return ENOEXEC;
-		}
-
-		switch (ph.p_type) {
-		    case PT_NULL: /* skip */ continue;
-		    case PT_PHDR: /* skip */ continue;
-		    case PT_MIPS_REGINFO: /* skip */ continue;
-		    case PT_LOAD: break;
-		    default:
-			kprintf("loadelf: unknown segment type %d\n",
-				ph.p_type);
-			return ENOEXEC;
-		}
-
 		result = as_define_region(as,
 					  ph.p_vaddr, ph.p_memsz,
 					  ph.p_flags & PF_R,
 					  ph.p_flags & PF_W,
 					  ph.p_flags & PF_X);
+#endif
+
 		if (result) {
 			return result;
 		}
 	}
 
+#if !OPT_RUDEVM
 	result = as_prepare_load(as);
 	if (result) {
 		return result;
@@ -434,10 +345,9 @@ load_elf(struct vnode *v, vaddr_t *entrypoint)
 	if (result) {
 		return result;
 	}
-
+#endif
 	*entrypoint = eh.e_entry;
 
 	return 0;
 
-#endif
 }

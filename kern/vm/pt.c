@@ -18,9 +18,9 @@
  * 
  * Since the address space contains a large number of pages 
  * which don't belong to a segment, the page table does not have an
- * entry for them in order to save memory.
+ * entry for them in order to not waste memory.
  * It means that the virtual address in the page table 
- * IS NOT index * PAGE_SIZE.
+ * IS NOT computed as index * PAGE_SIZE.
  * 
  * We can think the page table as divided in three different section, 
  * each of them dedicated to one segment, and starting from the virtual
@@ -133,9 +133,11 @@ void pt_empty(struct pt_entry* pt, int size){
                 paddr = ( pt[i].frame_index ) * PAGE_SIZE;
                 free_upage(paddr);
                 break;
-#if OPT_SWAP
             case IN_SWAP:
+#if OPT_SWAP       
                 swap_free(pt[i].swap_index);
+#else           
+                panic("SWAP Pages should not exists!");
 #endif
                 break;
             default:
@@ -148,6 +150,7 @@ void pt_empty(struct pt_entry* pt, int size){
 struct pt_entry *
 pt_get_entry_from_paddr(struct addrspace *as, const paddr_t paddr)
 {
+    //NOT USED, maybe we should remove it?
     int i;
     int n;
     unsigned int frame_index;

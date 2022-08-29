@@ -62,20 +62,10 @@ as_create(void)
 int
 as_copy(struct addrspace *old, struct addrspace **ret)
 {
-	struct addrspace *newas;
-
-	newas = as_create();
-	if (newas==NULL) {
-		return ENOMEM;
-	}
-
-	/*
-	 * Write this.
-	 */
-
 	(void)old;
+	(void)ret;
+	panic("as_copy() still not implemented!");
 
-	*ret = newas;
 	return 0;
 }
 
@@ -122,52 +112,44 @@ as_deactivate(void)
 	 */
 }
 
-/*
- * Set up a segment at virtual address VADDR of size MEMSIZE. The
+/**
+ * @brief Set up a segment at virtual address VADDR of size MEMSIZE. The
  * segment in memory extends from VADDR up to (but not including)
  * VADDR+MEMSIZE.
- *
- * The READABLE, WRITEABLE, and EXECUTABLE flags are set if read,
- * write, or execute permission should be set on the segment. At the
- * moment, these are ignored. When you write the VM system, you may
- * want to implement them.
+ * 
+ * @param as address space of the process
+ * @param first_vaddr actual first virtual address of the segment
+ * @param memsize size of the segment expressed in bytes
+ * @param elf_offset offset of the segment within the elf file
+ * @param elfsize size of the segment within the elf file
+ * @return int 
  */
 int
-as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t elf_offset, size_t elfsize,
-		 int readable, int writeable, int executable)
+as_define_region(struct addrspace *as, vaddr_t first_vaddr, size_t memsize, off_t elf_offset, size_t elfsize)
 {
 	size_t npages;
-	vaddr_t first_vaddr = vaddr;
-	vaddr_t last_vaddr = vaddr + memsize;
+	vaddr_t last_vaddr = first_vaddr + memsize;
+	vaddr_t base_vaddr;
 
 	KASSERT(as != NULL);
-
-	//vm_can_sleep();
+	KASSERT(memsize != 0);
 
 	/* Align the region. First, the base... */
-	memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
-	vaddr &= PAGE_FRAME;
-	
-
+	memsize += first_vaddr & ~(vaddr_t)PAGE_FRAME;
 	/* ...and now the length. */
-	memsize = (memsize + PAGE_SIZE - 1) & PAGE_FRAME;
+	npages =  DIVROUNDUP(memsize,PAGE_SIZE);
+
+	base_vaddr = first_vaddr & PAGE_FRAME;
 	
-	npages = memsize / PAGE_SIZE;
-
-	/* We don't use these - all pages are read-write */
-	(void)readable;
-	(void)writeable;
-	(void)executable;
-
 	if (as->s_text == NULL) {
 		as->s_text = segment_create();
-		segment_define(as->s_text, elf_offset, vaddr, first_vaddr, last_vaddr, npages, elfsize);
+		segment_define(as->s_text, elf_offset, base_vaddr, first_vaddr, last_vaddr, npages, elfsize);
 		return 0;
 	}
 
 	if (as->s_data == NULL) {
 		as->s_data = segment_create();
-		segment_define(as->s_data, elf_offset, vaddr, first_vaddr, last_vaddr, npages, elfsize);
+		segment_define(as->s_data, elf_offset, base_vaddr, first_vaddr, last_vaddr, npages, elfsize);
 		return 0;
 	}
 
@@ -208,23 +190,17 @@ struct segment *
 as_get_segment(struct addrspace *as, vaddr_t vaddr){
 
 	KASSERT(as != NULL);
-    
-    if (vaddr >= as->s_text->first_vaddr && vaddr < as->s_text->last_vaddr)
-    {
-        return as->s_text;
-    }
 
-    if (vaddr >= as->s_data->first_vaddr && vaddr < as->s_data->last_vaddr)
-    {
-        return as->s_data;
-    }
-
-    if (vaddr >= as->s_stack->first_vaddr && vaddr < as->s_stack->last_vaddr)
-    {
-        return as->s_stack;
-    }
-    
-	panic("vaddr out of range! (as_get_segment)");
+	switch(as_get_segment_type(as,vaddr)){
+		case SEGMENT_TEXT:
+			return as->s_text;
+		case SEGMENT_DATA:	
+			return as->s_data;
+		case SEGMENT_STACK:	
+			return as->s_stack;
+		default:
+			panic("vaddr out of range! (as_get_segment)");
+	}
     return NULL;
 }
 
@@ -277,43 +253,62 @@ int as_load_page(struct addrspace *as,struct vnode *vnode, vaddr_t faultaddress)
 	size_t size;				/* 	size of memory to load from elf 	*/
 	paddr_t target_addr;
 
-	pt_row = pt_get_entry(as,faultaddress );
+	pt_row = pt_get_entry(as,faultaddress);
 	segment = as_get_segment(as,faultaddress);
 
+	/*assert that the fault address belongs to the segment 	*/
 	KASSERT(faultaddress < ROUNDUP(segment->first_vaddr + segment->elfsize,PAGE_SIZE));
 	KASSERT(faultaddress >= segment->base_vaddr);
 
 	if(segment->base_vaddr == ( faultaddress & PAGE_FRAME )){
 		/*	first page of the segment	*/
 
-		size = PAGE_SIZE -( segment->first_vaddr & ~PAGE_FRAME ) > segment->elfsize ? 
-				segment->elfsize :
-				(PAGE_SIZE -( segment->first_vaddr & ~PAGE_FRAME )) ;
-		offset = segment->elf_offset ;
-		target_addr = pt_row->frame_index * PAGE_SIZE + ( segment->first_vaddr & ~PAGE_FRAME ) ;
+		/**
+		 * The portion belonging to the first page of the segment
+		 * which has to be loaded from the elf has a size equal to 
+		 * the number of bytes starting from the first virtual address
+		 * up to the first virtual address of the next page.
+		 * It can be that the size of the segment within the elf
+		 * is even smaller, in this case, we only have to load this
+		 * portion into the right address.
+		 * 
+		 */
+		size = PAGE_SIZE - ( segment->first_vaddr & ~PAGE_FRAME ) > segment->elfsize ? 
+				segment->elfsize :								/* in case the elfsize is smaller		*/
+				(PAGE_SIZE -( segment->first_vaddr & ~PAGE_FRAME )) ;	
+		offset = segment->elf_offset ;							/*  offset within the elf				*/
+		target_addr = pt_row->frame_index * PAGE_SIZE 			/*  physycal base address				*/
+					+ ( segment->first_vaddr & ~PAGE_FRAME ) ;	/* 	offset within the segment 			*/
 
 	}else if(((segment->first_vaddr + segment->elfsize) & PAGE_FRAME) == (( faultaddress & PAGE_FRAME ))){
 		/* 	last page of the segment (concerning the pages within the elf)	*/
 
-		size = ( segment->last_vaddr & ~PAGE_FRAME );
-		offset = segment->elf_offset + 							/*	offset within the elf	*/
-				(faultaddress & PAGE_FRAME) -
-				segment->first_vaddr ;
-		target_addr = pt_row->frame_index * PAGE_SIZE;
+		/**
+		 * The size to be loaded is equal to the size of the last page 
+		 * (among the ones within the subset of pages to be loaded from 
+		 * the elf file) within the elf
+		 * 
+		 */
+		size = (segment->first_vaddr + segment->elfsize) & ~PAGE_FRAME ;
+		offset = segment->elf_offset + 							/*	offset within the elf				*/
+				(faultaddress & PAGE_FRAME) -					/*  base address of the faulting page	*/
+				segment->first_vaddr ;							/*  first vaddr of the segment			*/
+		target_addr = pt_row->frame_index * PAGE_SIZE;			/*	physical addr of the faulting page	*/
 
 	}else{
 		/*	middle page of the segment	*/
 
-		size = PAGE_SIZE;
-		offset = segment->elf_offset + 							/*	offset within the elf	*/
-				(faultaddress & PAGE_FRAME) -
-				segment->first_vaddr ;
-		target_addr = pt_row->frame_index * PAGE_SIZE;
+		size = PAGE_SIZE;										
+		offset = segment->elf_offset + 							/*	offset within the elf				*/
+				(faultaddress & PAGE_FRAME) -					/*  base address of the faulting page	*/
+				segment->first_vaddr ;							/*  first vaddr of the segment			*/
+		target_addr = pt_row->frame_index * PAGE_SIZE;			/*	physical addr of the faulting page	*/
 
 	}
 
 	
 	load_page(vnode,offset,target_addr,size);
+
 	return 0;
 }
 

@@ -140,7 +140,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	int readonly;
 	vaddr_t basefaultaddr;
 	
-	//kprintf("0x%08lx\n",(long unsigned int)faultaddress);
 
 	/* Obtain the first address of the page */
 	basefaultaddr = faultaddress & PAGE_FRAME;
@@ -203,7 +202,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			panic("Cannot resolve fault");
 	}
 
-	readonly = (seg_type != 0 ? seg_type : as_get_segment_type(as, faultaddress)) == SEGMENT_TEXT;
+	KASSERT(seg_type != 0);
+	readonly = seg_type == SEGMENT_TEXT;
 	
 	tlb_insert(basefaultaddr, pt_row->frame_index * PAGE_SIZE, readonly); 
 
