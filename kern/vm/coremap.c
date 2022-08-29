@@ -219,12 +219,6 @@ coremap_getppages(int npages, struct pt_entry *ptentry)
 #endif
   }
 
-  if(ptentry != NULL)
-  {
-    ptentry->status = IN_MEMORY;
-    ptentry->frame_index = beginning;
-    //ptentry->swap_index = 0;
-  }
 
   bzero((void *)PADDR_TO_KVADDR(beginning * PAGE_SIZE), PAGE_SIZE * npages);
 

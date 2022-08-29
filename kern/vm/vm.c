@@ -190,9 +190,14 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	switch(pt_row->status)
 	{
 		case NOT_LOADED:
-			alloc_upage(pt_row);
+			page_paddr = alloc_upage(pt_row);
 			if(seg_type != SEGMENT_STACK && as_check_in_elf(as,faultaddress))
 					as_load_page(as,curproc->p_vnode,faultaddress);
+			
+			/* update page table	*/
+			pt_row->status = IN_MEMORY;
+			pt_row->frame_index = page_paddr/PAGE_SIZE;
+			pt_row->swap_index = 0;
 			break;
 		case IN_MEMORY:
 			break;
@@ -200,8 +205,12 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 #if OPT_SWAP
 			page_paddr = alloc_upage(pt_row);
 			swap_in(page_paddr, pt_row->swap_index);
+
+			/* update page table	*/
+			// pt_row->status = IN_MEMORY;
+			// pt_row->frame_index = page_paddr/PAGE_SIZE;
+			// pt_row->swap_index = 0;
 #else
-			(void)page_paddr; //to remove
 			panic("swap not implemented!");
 #endif
 		break;
@@ -211,7 +220,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	KASSERT(seg_type != 0);
 	readonly = seg_type == SEGMENT_TEXT;
-	
+
+	/* update tlb	*/
 	tlb_insert(basefaultaddr, pt_row->frame_index * PAGE_SIZE, readonly); 
 
 	return 0;
