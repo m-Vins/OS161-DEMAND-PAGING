@@ -5,6 +5,7 @@
 #include <mainbus.h>
 #include <swapfile.h>
 #include <pt.h>
+#include <vm_tlb.h>
 #include "opt-swap.h"
 
 vaddr_t firstfree; /* first free virtual address; set by start.S */
@@ -184,9 +185,9 @@ coremap_swapout(int npages)
   }
 
   swap_index = swap_out(victim_index * PAGE_SIZE);
-  coremap[victim_index].cm_ptentry->status = IN_SWAP;
-  coremap[victim_index].cm_ptentry->frame_index = 0;
-  coremap[victim_index].cm_ptentry->swap_index = swap_index;
+    /* update the page table */
+    pt_set_entry(coremap[victim_index].cm_ptentry,0,swap_index,IN_SWAP);
+    tlb_remove_by_paddr(victim_index * PAGE_SIZE);
 
   return victim_index;
 }
