@@ -3,8 +3,13 @@
 #include <spl.h>
 #include <vm.h>
 #include <lib.h>
+#include "opt-stats.h"
+#if OPT_STATS
+#include <vmstats.h>
+#endif
 
 int tlb_victim = 0;
+bool tlb_free = true;
 
 void tlb_invalidate(void)
 {
@@ -17,6 +22,13 @@ void tlb_invalidate(void)
     {
         tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
     }
+
+    tlb_victim = 0;
+    tlb_free = true;
+
+#if OPT_STATS
+    vmstats_hit(VMSTAT_TLB_INVALIDATION);
+#endif
 
     splx(spl);
 }
@@ -40,6 +52,21 @@ void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro)
     }
     tlb_write(ehi, elo, tlb_victim);
     tlb_victim = (tlb_victim + 1) % NUM_TLB;
+
+#if OPT_STATS
+    if(tlb_free)
+    {
+	    vmstats_hit(VMSTAT_TLB_FAULT_FREE);
+    }
+    else
+    {
+        vmstats_hit(VMSTAT_TLB_FAULT_REPLACE);
+    }
+#endif
+    if(tlb_victim == 0)
+    {
+        tlb_free = false;
+    }
 
     splx(spl);
 }

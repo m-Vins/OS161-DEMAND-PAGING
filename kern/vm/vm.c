@@ -211,9 +211,20 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 			/*	load the page if needed 	*/
 			if(seg_type != SEGMENT_STACK && as_check_in_elf(as,faultaddress))
-					as_load_page(as,curproc->p_vnode,faultaddress);
+			{
+				as_load_page(as,curproc->p_vnode,faultaddress);
+			}
+#if OPT_STATS
+			else
+			{
+    			vmstats_hit(VMSTAT_PAGE_FAULT_ZERO);
+			}
+#endif
 			break;
 		case IN_MEMORY:
+#if OPT_STATS
+    		vmstats_hit(VMSTAT_TLB_RELOAD);
+#endif
 			break;
 		case IN_SWAP:
 #if OPT_SWAP
