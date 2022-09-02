@@ -8,14 +8,15 @@
 
 struct coremap_entry
 {
-    unsigned int cm_used : 1;
-    unsigned int cm_allocsize : 16;
-    struct pt_entry *cm_ptentry;
+    unsigned int        cm_used : 1;
+    unsigned int        cm_allocsize : 16;      //TODO should we change it? 
+    struct pt_entry     *cm_ptentry;            /*  page table entry of the page living 
+                                                    in this frame, NULL if kernel page  */
 };
 
-void coremap_bootstrap(void);
-paddr_t coremap_getppages(int npages, struct pt_entry *ptentry);
-void coremap_freeppages(paddr_t addr);
+void        coremap_bootstrap(void);
+paddr_t     coremap_getppages(int npages, struct pt_entry *ptentry);
+void        coremap_freeppages(paddr_t addr);
 
 #endif /* OPT_RUDEVM */
 

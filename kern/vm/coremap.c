@@ -29,10 +29,10 @@ static struct coremap_entry *coremap;
  */
 void coremap_bootstrap(){
   paddr_t firstpaddr;   /* one past end of first free physical page */
-  paddr_t lastpaddr;    /* one past end of last free physical page */
-  size_t coremap_size;  /* number of bytes of coremap */
-  int coremap_pages;
-  int kernel_pages;
+  paddr_t lastpaddr;    /* one past end of last free physical page  */
+  size_t coremap_size;  /* number of bytes of coremap               */
+  int coremap_pages;    /* number of coremap pages                  */
+  int kernel_pages;     /* number of kernel pages                   */
   int i;
 
   /* Get size of RAM. */
@@ -54,7 +54,7 @@ void coremap_bootstrap(){
    * Get first free virtual address from where start.S saved it.
    * Convert to physical address.
    */
-  firstpaddr = firstfree - MIPS_KSEG0;
+  firstpaddr = KVADDR_TO_PADDR(firstfree);
 
   KASSERT(lastpaddr % PAGE_SIZE == 0);
   KASSERT(firstpaddr % PAGE_SIZE == 0);
