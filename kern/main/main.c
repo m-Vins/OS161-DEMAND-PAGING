@@ -51,8 +51,12 @@
 #include <version.h>
 #include "autoconf.h"  // for pseudoconfig
 #include "opt-rudevm.h"
+#include "opt-stats.h"
 #if OPT_RUDEVM 
 #include <coremap.h>
+#endif
+#if OPT_STATS
+#include <vmstats.h>
 #endif
 
 /*
@@ -156,6 +160,10 @@ shutdown(void)
 {
 
 	kprintf("Shutting down.\n");
+
+#if OPT_STATS
+	vmstats_print();
+#endif
 
 	vfs_clearbootfs();
 	vfs_clearcurdir();

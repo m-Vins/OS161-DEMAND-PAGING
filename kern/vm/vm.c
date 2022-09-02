@@ -15,6 +15,11 @@
 #include "opt-rudevm.h"
 #include "syscall.h"
 #include <swapfile.h>
+#include "opt-stats.h"
+
+#if OPT_STATS
+#include <vmstats.h>
+#endif
 
 #if OPT_RUDEVM
 /* under vm, always have 72k of user stack */
@@ -141,7 +146,10 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	int seg_type;
 	int readonly;
 	vaddr_t basefaultaddr;
-	
+
+#if OPT_STATS
+	vmstats_hit(VMSTAT_TLB_FAULT);
+#endif
 
 	/* Obtain the first address of the page */
 	basefaultaddr = faultaddress & PAGE_FRAME;
