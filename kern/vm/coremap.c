@@ -5,6 +5,7 @@
 #include <mainbus.h>
 #include <swapfile.h>
 #include <pt.h>
+#include <vm_tlb.h>
 #include "opt-swap.h"
 
 vaddr_t firstfree; /* first free virtual address; set by start.S */
@@ -28,10 +29,10 @@ static struct coremap_entry *coremap;
  */
 void coremap_bootstrap(){
   paddr_t firstpaddr;   /* one past end of first free physical page */
-  paddr_t lastpaddr;    /* one past end of last free physical page */
-  size_t coremap_size;  /* number of bytes of coremap */
-  int coremap_pages;
-  int kernel_pages;
+  paddr_t lastpaddr;    /* one past end of last free physical page  */
+  size_t coremap_size;  /* number of bytes of coremap               */
+  int coremap_pages;    /* number of coremap pages                  */
+  int kernel_pages;     /* number of kernel pages                   */
   int i;
 
   /* Get size of RAM. */
@@ -53,7 +54,7 @@ void coremap_bootstrap(){
    * Get first free virtual address from where start.S saved it.
    * Convert to physical address.
    */
-  firstpaddr = firstfree - MIPS_KSEG0;
+  firstpaddr = KVADDR_TO_PADDR(firstfree);
 
   KASSERT(lastpaddr % PAGE_SIZE == 0);
   KASSERT(firstpaddr % PAGE_SIZE == 0);
@@ -184,9 +185,9 @@ coremap_swapout(int npages)
   }
 
   swap_index = swap_out(victim_index * PAGE_SIZE);
-  coremap[victim_index].cm_ptentry->status = IN_SWAP;
-  coremap[victim_index].cm_ptentry->frame_index = 0;
-  coremap[victim_index].cm_ptentry->swap_index = swap_index;
+    /* update the page table */
+    pt_set_entry(coremap[victim_index].cm_ptentry,0,swap_index,IN_SWAP);
+    tlb_remove_by_paddr(victim_index * PAGE_SIZE);
 
   return victim_index;
 }

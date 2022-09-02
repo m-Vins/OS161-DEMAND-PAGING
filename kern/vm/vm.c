@@ -143,7 +143,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	struct pt_entry *pt_row;
 	struct addrspace *as;
 	paddr_t page_paddr;
-	int seg_type = 0;
+	int seg_type;
 	int readonly;
 	vaddr_t basefaultaddr;
 
@@ -188,38 +188,44 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	}
 
 	/* Assert that the address space has been set up properly. */
-	KASSERT(as->s_data != NULL);
-	KASSERT(as->s_stack != NULL);
-	KASSERT(as->s_text != NULL);
+	KASSERT(as->as_data != NULL);
+	KASSERT(as->as_stack != NULL);
+	KASSERT(as->as_text != NULL);
 	KASSERT(as->as_ptable != NULL);
 
 	pt_row = pt_get_entry(as, faultaddress);
 	seg_type = as_get_segment_type(as, faultaddress);
-	switch(pt_row->status)
+	switch(pt_row->pt_status)
 	{
 		case NOT_LOADED:
+			/*	alloc a page				*/
 			page_paddr = alloc_upage(pt_row);
 
-			/* update page table	*/
-			pt_row->status = IN_MEMORY;
-			pt_row->frame_index = page_paddr/PAGE_SIZE;
-			pt_row->swap_index = 0;
+			/**  
+			 * update page table.			
+			 * it is important to do it before as_load_page
+			 * as the pt_entry will be used to retrieve the
+			 * physical address of the page
+			 */
+			pt_set_entry(pt_row,page_paddr,0,IN_MEMORY);
 
+			/*	load the page if needed 	*/
 			if(seg_type != SEGMENT_STACK && as_check_in_elf(as,faultaddress))
 					as_load_page(as,curproc->p_vnode,faultaddress);
-			
 			break;
 		case IN_MEMORY:
 			break;
 		case IN_SWAP:
 #if OPT_SWAP
+			/*	alloc the page				*/
 			page_paddr = alloc_upage(pt_row);
-			swap_in(page_paddr, pt_row->swap_index);
+
+			/*	swap it from the elf file into memory	*/
+			swap_in(page_paddr, pt_row->pt_swap_index);
 
 			/* update page table	*/
-			pt_row->status = IN_MEMORY;
-			pt_row->frame_index = page_paddr/PAGE_SIZE;
-			pt_row->swap_index = 0;
+			pt_set_entry(pt_row,page_paddr,0,IN_MEMORY);
+
 #else
 			panic("swap not implemented!");
 #endif
@@ -232,7 +238,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	readonly = seg_type == SEGMENT_TEXT;
 
 	/* update tlb	*/
-	tlb_insert(basefaultaddr, pt_row->frame_index * PAGE_SIZE, readonly); 
+	tlb_insert(basefaultaddr, pt_row->pt_frame_index * PAGE_SIZE, readonly); 
 
 	return 0;
 }

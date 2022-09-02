@@ -41,7 +41,7 @@
 #if OPT_RUDEVM
 #define SEGMENT_TEXT    1
 #define SEGMENT_DATA    2
-#define SEGMENT_STACK   3
+#define SEGMENT_STACK   3 
 #endif
 
 struct vnode;
@@ -64,9 +64,9 @@ struct addrspace {
         size_t as_npages2;
         paddr_t as_stackpbase;
 #elif OPT_RUDEVM
-        struct segment *s_text;
-        struct segment *s_data;
-        struct segment *s_stack;
+        struct segment  *as_text;
+        struct segment  *as_data;
+        struct segment  *as_stack;
 	struct pt_entry *as_ptable;
 #endif
 };

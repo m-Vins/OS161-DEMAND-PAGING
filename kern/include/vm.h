@@ -47,21 +47,21 @@
 
 
 /* Initialization function */
-void vm_bootstrap(void);
+void    vm_bootstrap(void);
 
 /* Fault handling function called by trap code */
-int vm_fault(int faulttype, vaddr_t faultaddress);
+int     vm_fault(int faulttype, vaddr_t faultaddress);
 
 /* Allocate/free kernel heap pages (called by kmalloc/kfree) */
 vaddr_t alloc_kpages(unsigned npages);
-void free_kpages(vaddr_t addr);
+void    free_kpages(vaddr_t addr);
 
 /* Allocate/free user pages */
-void free_upage(paddr_t addr);
+void    free_upage(paddr_t addr);
 paddr_t alloc_upage(struct pt_entry *pt_row);
 
 /* TLB shootdown handling called from interprocessor_interrupt */
-void vm_tlbshootdown(const struct tlbshootdown *);
+void    vm_tlbshootdown(const struct tlbshootdown *);
 
 
 #endif /* _VM_H_ */

@@ -11,22 +11,23 @@
 #define IN_MEMORY 1
 #define IN_SWAP 2
 
-#define IS_IN_MEMORY(pt_entry) (pt_entry->status==IN_MEMORY)
-#define IS_IN_SWAP(pt_entry) (pt_entry->status==IN_SWAP)
-#define IS_NOT_LOADED(pt_entry) (pt_entry->status==NOT_LOADED)
+//TODO REMOVE IT
+#define IS_IN_MEMORY(pt_entry) (pt_entry->pt_status==IN_MEMORY)
+#define IS_IN_SWAP(pt_entry) (pt_entry->pt_status==IN_SWAP)
+#define IS_NOT_LOADED(pt_entry) (pt_entry->pt_status==NOT_LOADED)
 
 struct pt_entry
 {
-    unsigned int frame_index : 20;
-    unsigned int swap_index : 12;
-    unsigned char status : 2;
+    unsigned int    pt_frame_index : 20;
+    unsigned int    pt_swap_index : 12;
+    unsigned char   pt_status : 2;
 };
 
-struct pt_entry *pt_get_entry(struct addrspace *as, const vaddr_t vaddr);
-struct pt_entry *pt_create(unsigned long pagetable_size);
-void pt_empty(struct pt_entry* pt, int size);
-void pt_destroy(struct pt_entry*);
-struct pt_entry *pt_get_entry_from_paddr(struct addrspace *as, const paddr_t paddr);
+struct pt_entry     *pt_get_entry(struct addrspace *as, const vaddr_t vaddr);
+struct pt_entry     *pt_create(unsigned long pagetable_size);
+void                pt_empty(struct pt_entry* pt, int size);
+void                pt_destroy(struct pt_entry*);
+void                pt_set_entry(struct pt_entry *pt_row, paddr_t paddr, unsigned int swap_index, unsigned char status);
 
 #endif /* OPT_RUDEVM */
 
