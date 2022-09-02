@@ -466,4 +466,5 @@ optfile   rudevm    vm/segment.c
 # do not compile ram.c as it is not used in rudevm
 
 defoption stats
+defoption noswap_rdonly
 optfile   stats     vm/vmstats.c

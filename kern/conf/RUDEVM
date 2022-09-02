@@ -36,3 +36,4 @@ options waitpid
 options rudevm
 options swap
 options stats
+options noswap_rdonly

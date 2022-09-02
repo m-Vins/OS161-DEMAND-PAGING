@@ -7,6 +7,7 @@
 #include <swapfile.h>
 #include <vm.h>
 #include "opt-swap.h"
+#include "opt-noswap_rdonly.h"
 
 /**
  * The page table is an array of entries where each of them 
@@ -146,6 +147,9 @@ void pt_empty(struct pt_entry* pt, int size){
     for(int i = 0; i < size; i++){
         switch (pt[i].pt_status)
         {
+#if OPT_NOSWAP_RDONLY
+            case IN_MEMORY_RDONLY:
+#endif
             case IN_MEMORY:
                 paddr = ( pt[i].pt_frame_index ) * PAGE_SIZE;
                 free_upage(paddr);
@@ -173,8 +177,11 @@ void pt_empty(struct pt_entry* pt, int size){
  * @param status 
  */
 void pt_set_entry(struct pt_entry *pt_row, paddr_t paddr, unsigned int swap_index, unsigned char status){
-    
+#if OPT_NOSWAP_RDONLY
+    KASSERT(status == IN_MEMORY || status == IN_MEMORY_RDONLY || status == IN_SWAP || status == NOT_LOADED);
+#else
     KASSERT(status == IN_MEMORY || status == IN_SWAP || status == NOT_LOADED);
+#endif
     KASSERT(swap_index < 0xfff);     /*  it should be on 12 bit */
 
     pt_row->pt_frame_index = paddr/PAGE_SIZE;
