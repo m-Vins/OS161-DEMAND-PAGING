@@ -69,7 +69,7 @@ static int pt_get_index(struct addrspace *as, vaddr_t vaddr){
             KASSERT(pt_index <  as->as_data->seg_npages + as->as_text->seg_npages + as->as_stack->seg_npages);
             return pt_index;
         default :
-            panic("vaddr out of range! (pt_get_index)\n");
+            panic("invalid segment type! (pt_get_index)");
     }
     
     return 0;

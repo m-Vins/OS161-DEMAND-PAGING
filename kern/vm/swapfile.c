@@ -3,11 +3,14 @@
 #include <kern/fcntl.h>
 #include <uio.h>
 #include <vfs.h>
+#include <synch.h>
 #include <vm.h>
 #include <vnode.h>
 
 static struct vnode *swapfile;
 static struct bitmap *swapmap;
+static struct spinlock swaplock = SPINLOCK_INITIALIZER;
+
 
 /**
  * @brief creates the swap file and allocated the data
@@ -46,7 +49,9 @@ void swap_in(paddr_t page_paddr, unsigned int swap_index)
 
     KASSERT(page_paddr % PAGE_SIZE == 0);
     KASSERT(swap_index < SWAPFILE_NPAGES);
+    spinlock_acquire(&swaplock);
     KASSERT(bitmap_isset(swapmap, swap_index));
+    spinlock_release(&swaplock);
 
     swap_offset = swap_index * PAGE_SIZE;
 
@@ -61,7 +66,9 @@ void swap_in(paddr_t page_paddr, unsigned int swap_index)
 		panic("SWAP: short read on page");
 	}
 
+    spinlock_acquire(&swaplock);
     bitmap_unmark(swapmap, swap_index);
+    spinlock_release(&swaplock);
 }
 
 /**
@@ -81,7 +88,9 @@ unsigned int swap_out(paddr_t page_paddr)
 
     KASSERT(page_paddr % PAGE_SIZE == 0);
 
+    spinlock_acquire(&swaplock);
     err = bitmap_alloc(swapmap, &swap_index);
+    spinlock_release(&swaplock);
     if (err)
     {
         panic("Out of swap space\n");
@@ -108,7 +117,9 @@ unsigned int swap_out(paddr_t page_paddr)
  */ 
 void swap_free(unsigned int swap_index)
 {
+    spinlock_acquire(&swaplock);
     bitmap_unmark(swapmap, swap_index);
+    spinlock_release(&swaplock);
 }
 
 //TODO add swap destroy??

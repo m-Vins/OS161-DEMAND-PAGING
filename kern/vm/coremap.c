@@ -6,20 +6,21 @@
 #include <swapfile.h>
 #include <pt.h>
 #include <vm_tlb.h>
+#include <synch.h>
 #include "opt-swap.h"
 
 vaddr_t firstfree; /* first free virtual address; set by start.S */
 
-// TODO: spinlocks
+struct spinlock cm_spinlock = SPINLOCK_INITIALIZER;
 
-static int coremap_find_freeframes(int npages);
+static int        coremap_find_freeframes(int npages);
 #if OPT_SWAP
-static int coremap_get_victim();
-static int coremap_swapout(int npages);
-static int victim_index = 0;
+static int        coremap_get_victim();
+static int        coremap_swapout(int npages);
+static int        victim_index = 0;
 #endif
-static int nRamFrames = 0; /* number of ram frames */
-static struct coremap_entry *coremap;
+static int        nRamFrames = 0; /* number of ram frames */
+static struct     coremap_entry *coremap;
 
 /**
  * @brief Initialization of the coremap, this function is called 
@@ -78,6 +79,7 @@ void coremap_bootstrap(){
   {
     coremap[i].cm_allocsize = 0;
     coremap[i].cm_used = 0;
+    coremap[i].cm_lock = 0;
     coremap[i].cm_ptentry = NULL;
   }
 
@@ -149,7 +151,7 @@ coremap_get_victim()
     victim_index = (victim_index + 1) % nRamFrames;
 
     /* Swap out only user pages */
-    if(coremap[victim_index].cm_ptentry != NULL)
+    if(coremap[victim_index].cm_ptentry != NULL && !coremap[victim_index].cm_lock)
     {
       KASSERT(coremap[victim_index].cm_used == 1);
       KASSERT(coremap[victim_index].cm_allocsize == 1);
@@ -184,10 +186,21 @@ coremap_swapout(int npages)
     panic("Cannot find swappable victim");
   }
 
+  /**  
+   * protect the coremap entry while is swapping out,
+   * as the cm_lock = 1 prevent the frame to be selected
+   * as a victim for another concurrent swap out.
+   */
+  coremap[victim_index].cm_lock = 1;
+  spinlock_release(&cm_spinlock);
   swap_index = swap_out(victim_index * PAGE_SIZE);
-    /* update the page table */
-    pt_set_entry(coremap[victim_index].cm_ptentry,0,swap_index,IN_SWAP);
-    tlb_remove_by_paddr(victim_index * PAGE_SIZE);
+  spinlock_acquire(&cm_spinlock);
+  coremap[victim_index].cm_lock = 0;
+  
+
+  /* update the page table */
+  pt_set_entry(coremap[victim_index].cm_ptentry,0,swap_index,IN_SWAP);
+  tlb_remove_by_paddr(victim_index * PAGE_SIZE);
 
   return victim_index;
 }
@@ -206,6 +219,7 @@ coremap_getppages(int npages, struct pt_entry *ptentry)
   int i;
   int beginning;
 
+  spinlock_acquire(&cm_spinlock);
   beginning = coremap_find_freeframes(npages);
   if (beginning == -1)
   {
@@ -213,9 +227,11 @@ coremap_getppages(int npages, struct pt_entry *ptentry)
     beginning = coremap_swapout(npages);
     if (beginning == -1)
     {
+      spinlock_release(&cm_spinlock);
       return 0;
     }
 #else
+    spinlock_release(&cm_spinlock);
     return 0;
 #endif
   }
@@ -229,7 +245,7 @@ coremap_getppages(int npages, struct pt_entry *ptentry)
     coremap[beginning + i].cm_used = 1;
     coremap[beginning + i].cm_ptentry = ptentry;
   }
-
+  spinlock_release(&cm_spinlock);
   return beginning * PAGE_SIZE;
 }
 
@@ -252,9 +268,11 @@ void coremap_freeppages(paddr_t addr)
   KASSERT(nRamFrames > first);
   KASSERT(allocSize > 0);
 
+  spinlock_acquire(&cm_spinlock);
   for (i = 0; i < allocSize; i++)
   {
     KASSERT(coremap[first + i].cm_used == 1);
     coremap[first + i].cm_used = 0;
   }
+  spinlock_release(&cm_spinlock);
 }

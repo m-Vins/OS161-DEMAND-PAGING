@@ -261,7 +261,7 @@ as_get_segment(struct addrspace *as, vaddr_t vaddr){
 		case SEGMENT_STACK:	
 			return as->as_stack;
 		default:
-			panic("vaddr out of range! (as_get_segment)");
+			panic("invalid segment type! (as_get_segment)");
 	}
     return NULL;
 }
