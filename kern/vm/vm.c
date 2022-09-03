@@ -194,8 +194,15 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	KASSERT(as->as_text != NULL);
 	KASSERT(as->as_ptable != NULL);
 
+	/**
+	 * If as_get_segment_type returns zero, the fault address
+	 * does not belong to a valid segment.
+	 */
+	if(!(seg_type = as_get_segment_type(as, faultaddress))){
+		kprintf("vm: got faultaddr out of range, process killed\n");
+		sys__exit(-1);
+	}
 	pt_row = pt_get_entry(as, faultaddress);
-	seg_type = as_get_segment_type(as, faultaddress);
 	readonly = seg_type == SEGMENT_TEXT;
 	switch(pt_row->pt_status)
 	{

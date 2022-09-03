@@ -241,7 +241,7 @@ as_get_segment_type(struct addrspace *as, vaddr_t vaddr)
         return SEGMENT_STACK;
     }
     
-    panic("vaddr out of range! (as_get_segment_type)");
+    return 0;
 }
 
 /**

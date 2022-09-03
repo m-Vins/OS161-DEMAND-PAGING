@@ -273,6 +273,7 @@ void coremap_freeppages(paddr_t addr)
 
   first = addr / PAGE_SIZE;
   allocSize = coremap[first].cm_allocsize;
+  coremap[first].cm_allocsize = 0;
 
   KASSERT(nRamFrames > first);
   KASSERT(allocSize > 0);

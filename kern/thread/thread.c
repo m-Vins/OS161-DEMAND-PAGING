@@ -793,6 +793,8 @@ thread_exit(void)
 #endif
 
 	/* Make sure we *are* detached (move this only if you're sure!) */
+	if(cur->t_proc != NULL)	proc_remthread(cur);
+
 	KASSERT(cur->t_proc == NULL);
 
 	/* Check the stack guard band. */
