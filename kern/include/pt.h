@@ -11,14 +11,9 @@
 #define NOT_LOADED 0
 #define IN_MEMORY 1
 #define IN_SWAP 2
-#if OPT_NOSWAP_RDONLY
 #define IN_MEMORY_RDONLY 3
-#endif
 
-//TODO REMOVE IT
-#define IS_IN_MEMORY(pt_entry) (pt_entry->pt_status==IN_MEMORY)
-#define IS_IN_SWAP(pt_entry) (pt_entry->pt_status==IN_SWAP)
-#define IS_NOT_LOADED(pt_entry) (pt_entry->pt_status==NOT_LOADED)
+
 
 struct pt_entry
 {
