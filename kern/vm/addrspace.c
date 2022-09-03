@@ -331,9 +331,9 @@ int as_load_page(struct addrspace *as,struct vnode *vnode, vaddr_t faultaddress)
 
 	/*	assert that the fault address belongs to the segment 	*/
 	KASSERT(faultaddress < ROUNDUP(segment->seg_first_vaddr + segment->seg_elf_size,PAGE_SIZE));
-	KASSERT(faultaddress >= segment->seg_base_vaddr);
+	KASSERT(faultaddress >= (segment->seg_first_vaddr & PAGE_FRAME));
 
-	if(segment->seg_base_vaddr == ( faultaddress & PAGE_FRAME )){
+	if((segment->seg_first_vaddr & PAGE_FRAME )== ( faultaddress & PAGE_FRAME )){
 		/*	first page of the segment	*/
 
 		/**

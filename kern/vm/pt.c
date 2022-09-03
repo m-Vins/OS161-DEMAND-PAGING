@@ -58,15 +58,15 @@ static int pt_get_index(struct addrspace *as, vaddr_t vaddr){
 
     switch(as_get_segment_type(as,vaddr)){
         case SEGMENT_TEXT:
-            pt_index = ( vaddr - as->as_text->seg_base_vaddr ) / PAGE_SIZE;
+            pt_index = ( vaddr - (as->as_text->seg_first_vaddr & PAGE_FRAME) ) / PAGE_SIZE;
             KASSERT(pt_index < as->as_text->seg_npages);
             return pt_index;
         case SEGMENT_DATA:
-            pt_index = as->as_text->seg_npages + ( vaddr - as->as_data->seg_base_vaddr ) / PAGE_SIZE;
+            pt_index = as->as_text->seg_npages + ( vaddr - (as->as_data->seg_first_vaddr & PAGE_FRAME) ) / PAGE_SIZE;
             KASSERT(pt_index <  as->as_text->seg_npages + as->as_data->seg_npages);
             return pt_index;
         case SEGMENT_STACK:
-            pt_index = as->as_data->seg_npages + as->as_text->seg_npages + (vaddr - as->as_stack->seg_base_vaddr) / PAGE_SIZE ;
+            pt_index = as->as_data->seg_npages + as->as_text->seg_npages + (vaddr - (as->as_stack->seg_first_vaddr & PAGE_FRAME) ) / PAGE_SIZE ;
             KASSERT(pt_index <  as->as_data->seg_npages + as->as_text->seg_npages + as->as_stack->seg_npages);
             return pt_index;
         default :

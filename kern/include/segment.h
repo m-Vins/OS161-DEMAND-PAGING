@@ -7,7 +7,6 @@
 #if OPT_RUDEVM
 
 struct segment {
-    vaddr_t     seg_base_vaddr;     /*  address of the first page in virtual memory */
     vaddr_t     seg_first_vaddr;    /*  actual first address of the segment         */
     vaddr_t     seg_last_vaddr;     /*  last address of the segment                 */
     size_t      seg_elf_size;       /*  size of the segment within the elf          */

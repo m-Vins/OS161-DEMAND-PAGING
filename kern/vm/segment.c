@@ -13,7 +13,6 @@ struct segment *segment_create(void){
     KASSERT(seg != NULL);
 
     seg->seg_elf_offset = 0;
-    seg->seg_base_vaddr = 0;
     seg->seg_first_vaddr = 0;
     seg->seg_last_vaddr = 0;
     seg->seg_npages = 0;
@@ -38,7 +37,6 @@ void segment_define(struct segment *seg, off_t elf_offset, vaddr_t base_vaddr, v
     /*  check the segment has been correctly allocated and initialized    */
     KASSERT(seg != NULL);
     KASSERT(seg->seg_elf_offset == 0);
-    KASSERT(seg->seg_base_vaddr == 0);
     KASSERT(seg->seg_first_vaddr == 0);
     KASSERT(seg->seg_last_vaddr == 0);
     KASSERT(seg->seg_npages == 0);
@@ -56,7 +54,6 @@ void segment_define(struct segment *seg, off_t elf_offset, vaddr_t base_vaddr, v
 	}
 
     seg->seg_elf_offset = elf_offset;
-    seg->seg_base_vaddr = base_vaddr;
     seg->seg_first_vaddr = first_vaddr;
     seg->seg_last_vaddr = last_vaddr;
     seg->seg_npages = npages;
