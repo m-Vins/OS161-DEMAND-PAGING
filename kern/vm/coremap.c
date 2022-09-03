@@ -8,6 +8,7 @@
 #include <vm_tlb.h>
 #include <synch.h>
 #include "opt-swap.h"
+#include "opt-noswap_rdonly.h"
 
 vaddr_t firstfree; /* first free virtual address; set by start.S */
 
@@ -185,6 +186,14 @@ coremap_swapout(int npages)
   {
     panic("Cannot find swappable victim");
   }
+
+#if OPT_NOSWAP_RDONLY
+  if(coremap[victim_index].cm_ptentry->pt_status == IN_MEMORY_RDONLY){
+    pt_set_entry(coremap[victim_index].cm_ptentry,0,0,NOT_LOADED);
+    tlb_remove_by_paddr(victim_index * PAGE_SIZE);
+    return victim_index;
+  }
+#endif
 
   /**  
    * protect the coremap entry while is swapping out,

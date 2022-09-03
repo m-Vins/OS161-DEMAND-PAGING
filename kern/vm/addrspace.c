@@ -36,6 +36,10 @@
 #include <segment.h>
 #include <vm_tlb.h>
 #include <pt.h>
+#include "opt-stats.h"
+#if OPT_STATS
+#include <vmstats.h>
+#endif
 
 
 #define VM_STACKPAGES    18
@@ -316,6 +320,11 @@ int as_load_page(struct addrspace *as,struct vnode *vnode, vaddr_t faultaddress)
 	off_t offset;				/* 	offset within the elf				*/
 	size_t size;				/* 	size of memory to load from elf 	*/
 	paddr_t target_addr;
+
+#if OPT_STATS
+	vmstats_hit(VMSTAT_PAGE_FAULT_DISK);
+	vmstats_hit(VMSTAT_PAGE_FAULT_ELF);
+#endif
 
 	pt_row = pt_get_entry(as,faultaddress);
 	segment = as_get_segment(as,faultaddress);

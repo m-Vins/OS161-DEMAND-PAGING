@@ -6,6 +6,10 @@
 #include <synch.h>
 #include <vm.h>
 #include <vnode.h>
+#include "opt-stats.h"
+#if OPT_STATS
+#include <vmstats.h>
+#endif
 
 static struct vnode *swapfile;
 static struct bitmap *swapmap;
@@ -47,6 +51,11 @@ void swap_in(paddr_t page_paddr, unsigned int swap_index)
     struct iovec iov;
     struct uio ku;
 
+#if OPT_STATS
+    vmstats_hit(VMSTAT_PAGE_FAULT_DISK);
+    vmstats_hit(VMSTAT_SWAP_WRITE);
+#endif
+
     KASSERT(page_paddr % PAGE_SIZE == 0);
     KASSERT(swap_index < SWAPFILE_NPAGES);
     spinlock_acquire(&swaplock);
@@ -85,6 +94,10 @@ unsigned int swap_out(paddr_t page_paddr)
     off_t swap_offset;
     struct iovec iov;
     struct uio ku;
+
+#if OPT_STATS
+    vmstats_hit(VMSTAT_PAGE_FAULT_SWAP);
+#endif
 
     KASSERT(page_paddr % PAGE_SIZE == 0);
 
