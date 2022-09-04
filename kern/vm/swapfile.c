@@ -53,7 +53,7 @@ void swap_in(paddr_t page_paddr, unsigned int swap_index)
 
 #if OPT_STATS
     vmstats_hit(VMSTAT_PAGE_FAULT_DISK);
-    vmstats_hit(VMSTAT_SWAP_WRITE);
+    vmstats_hit(VMSTAT_PAGE_FAULT_SWAP);
 #endif
 
     KASSERT(page_paddr % PAGE_SIZE == 0);
@@ -96,7 +96,7 @@ unsigned int swap_out(paddr_t page_paddr)
     struct uio ku;
 
 #if OPT_STATS
-    vmstats_hit(VMSTAT_PAGE_FAULT_SWAP);
+    vmstats_hit(VMSTAT_SWAP_WRITE);
 #endif
 
     KASSERT(page_paddr % PAGE_SIZE == 0);
