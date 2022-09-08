@@ -13,3 +13,5 @@ userland/testbin/*
 !/userland/testbin/nosywrite/
 
 !.gitignore
+
+!execute_tests.py
