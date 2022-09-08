@@ -11,6 +11,8 @@
 userland/testbin/*
 !/userland/testbin/Makefile
 !/userland/testbin/nosywrite/
+!/userland/testbin/hugematmult1/
+!/userland/testbin/hugematmult2/
 
 !.gitignore
 
