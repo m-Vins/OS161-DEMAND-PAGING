@@ -98,7 +98,7 @@ def main():
         "sort",
         "matmult",
         "hugematmult1",
-        # "hugematmult2",
+        "hugematmult2",
         "ctest"
     ]
 
@@ -109,8 +109,11 @@ def main():
         "km1",
         "km2",
         "km3 1000",
-        # "km4"
+        "km4"
     ]
+
+    passed_programs = []
+    passed_tests = []
 
     f = open("testresults.md", "w")
 
@@ -123,38 +126,35 @@ def main():
     for program in programs:
         proc = open_instance()
         success = run_program(proc, program)
-        results = close_instance(proc)
 
         if success:
+            results = close_instance(proc)
+            passed_programs.append(program)
             f.write("|" + program+"|" + "|".join(results) + "|\n")
         else:
+            kill_instance(proc)
             f.write("|" + program+"|" + "|".join(["-" for s in stats]) + "|\n")
     f.write("\n")
 
 
-    # # Generic tests header
-    # f.write("# Tests\n")
-    # f.write("|Test name|Passed|\n")
-    # f.write("|-|-|\n")
+    # Generic tests header
+    f.write("# Tests\n")
+    f.write("|Test name|Passed|\n")
+    f.write("|-|-|\n")
 
-    # proc = open_instance()
-    # for test in tests:
-    #     success = run_cmd(proc, test)
-    #     if success:
-    #         f.write("|" + test+"|" + "True" + "|\n")
-    #     else:
-    #         print("d")
-    #         f.write("|" + test+"|" + "False" + "|\n")
-    #         kill_instance(proc)
-    #         print("c")
-    #         proc = open_instance()
-    #         print("b")
-    #     print("a")
-    # print("1")
-    # close_instance(proc)
-    # f.write("\n")
-    
-    
+    for test in tests:
+        proc = open_instance()
+        success = run_cmd(proc, test)
+        if success:
+            passed_tests.append(test)
+            close_instance(proc)
+            f.write("|" + test+"|" + "True" + "|\n")
+        else:
+            kill_instance(proc)
+            f.write("|" + test+"|" + "False" + "|\n")
+    f.write("\n")
+   
+
     # Stability test header
     f.write("# Stability test\n")
     f.write("|" + " | ".join(stats) + "|\n")
@@ -163,9 +163,13 @@ def main():
     # Stability test
     proc = open_instance()
     failures = 0
-    for _ in range(20):
-        for program in programs:
+    for _ in range(10):
+        for program in passed_programs:
             success = run_program(proc, program)
+            if not success:
+                failures += 1
+        for test in passed_tests:
+            success = run_cmd(proc, test)
             if not success:
                 failures += 1
     results = close_instance(proc)
