@@ -71,15 +71,6 @@ void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro)
     splx(spl);
 }
 
-void tlb_remove_by_vaddr(vaddr_t vaddr)
-{
-    int index;
-    //TODO REMOVE IT
-
-    index = tlb_probe(vaddr, 0);
-    if (index >= 0)
-        tlb_write(TLBHI_INVALID(index), TLBLO_INVALID(), index);
-}
 
 void tlb_remove_by_paddr(paddr_t paddr) {
     
