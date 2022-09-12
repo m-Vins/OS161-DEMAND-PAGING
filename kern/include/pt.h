@@ -5,6 +5,7 @@
 #include <addrspace.h>
 #include "opt-rudevm.h"
 #include "opt-noswap_rdonly.h"
+#include "opt-swap.h"
 #include <swapfile.h>
 
 #if OPT_RUDEVM
@@ -19,7 +20,11 @@
 struct pt_entry
 {
     unsigned int    pt_frame_index : 20;
+#if OPT_SWAP
     unsigned int    pt_swap_index : SWAP_INDEX_SIZE;
+#else
+    unsigned int    pt_swap_index : 12;
+#endif
     unsigned char   pt_status : 2;
 };
 
