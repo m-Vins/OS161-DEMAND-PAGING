@@ -7,6 +7,7 @@
 #if OPT_SWAP
 
 #define SWAPFILE_SIZE 9 * 1024 * 1024
+#define SWAP_INDEX_SIZE 12 /* Calculated as upper(log_2(SWAPFILE_SIZE/PAGE_SIZE)) */
 #define SWAPFILE_NAME "emu0:/SWAPFILE"
 #define SWAPFILE_NPAGES SWAPFILE_SIZE/PAGE_SIZE
 
