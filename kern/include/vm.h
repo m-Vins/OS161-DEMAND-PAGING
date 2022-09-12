@@ -39,6 +39,7 @@
 
 #include <pt.h>
 #include <machine/vm.h>
+#include "opt-rudevm.h"
 
 /* Fault-type arguments to vm_fault() */
 #define VM_FAULT_READ        0    /* A read was attempted */
@@ -56,12 +57,13 @@ int     vm_fault(int faulttype, vaddr_t faultaddress);
 vaddr_t alloc_kpages(unsigned npages);
 void    free_kpages(vaddr_t addr);
 
+#if OPT_RUDEVM
 /* Allocate/free user pages */
 void    free_upage(paddr_t addr);
 paddr_t alloc_upage(struct pt_entry *pt_row);
+#endif
 
 /* TLB shootdown handling called from interprocessor_interrupt */
 void    vm_tlbshootdown(const struct tlbshootdown *);
-
 
 #endif /* _VM_H_ */
