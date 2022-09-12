@@ -1,7 +1,41 @@
 import pexpect
 import sys
 import os
+import shutil
+import os.path
 
+stats = [
+    "TLB Faults",
+    "TLB Faults with Free",
+    "TLB Faults with Replace",
+    "TLB Invalidations",
+    "TLB Reloads",
+    "Page Faults (Zeroed)",
+    "Page Faults (Disk)",
+    "Page Faults from ELF",
+    "Page Faults from Swapfile",
+    "Swapfile Writes"
+]
+
+programs = [
+    "palin",
+    "huge",
+    "sort",
+    "matmult",
+    "hugematmult1",
+    "hugematmult2",
+    "ctest"
+]
+
+tests = [
+    "at",
+    "at2",
+    "bt",
+    "km1",
+    "km2",
+    "km3 1000",
+    "km4"
+]
 
 def getprompt(proc, prompt):
 	which = proc.expect_exact([
@@ -73,69 +107,67 @@ def run_cmd(proc,cmd):
     proc.sendline(cmd)
     msg = getprompt(proc, "OS/161 kernel [? for menu]: ")
     if msg == None:
-        return True
+        return proc.before
     else:
-        return False
+        return None
+
+
+def extract_execution_time(output):
+    return output.split("\n")[-2].strip().split(" ")[2][:6]
+
+
+def run_program_tests(f, ram_size):
+    passed_programs = []
+
+    for program in programs:
+        proc = open_instance()
+        program_output = run_program(proc, program)
+
+        if program_output:
+            execution_time = extract_execution_time(program_output)
+            results = close_instance(proc)
+            passed_programs.append(program)
+            f.write("|" + program + "|" + ram_size + "|" + execution_time + "|" + "|".join(results) + "|\n")
+        else:
+            kill_instance(proc)
+            f.write("|" + program + "|" + ram_size + "|-|" + "|".join(["-" for s in stats]) + "|\n")
+
+    return passed_programs
 
 
 def main():
-    stats = [
-        "TLB Faults",
-        "TLB Faults with Free",
-        "TLB Faults with Replace",
-        "TLB Invalidations",
-        "TLB Reloads",
-        "Page Faults (Zeroed)",
-        "Page Faults (Disk)",
-        "Page Faults from ELF",
-        "Page Faults from Swapfile",
-        "Swapfile Writes"
-    ]
-
-    programs = [
-        "palin",
-        "huge",
-        "sort",
-        "matmult",
-        "hugematmult1",
-        "hugematmult2",
-        "ctest"
-    ]
-
-    tests = [
-        "at",
-        "at2",
-        "bt",
-        "km1",
-        "km2",
-        "km3 1000",
-        "km4"
-    ]
-
-    passed_programs = []
     passed_tests = []
 
+    # Create sys161.conf backup
+    if not os.path.exists("../root/sys161.conf.backup"):
+        shutil.copyfile("../root/sys161.conf", "../root/sys161.conf.backup")
+    else:
+        shutil.copyfile("../root/sys161.conf.backup", "../root/sys161.conf")
+
+    # Init .md file
     f = open("testresults.md", "w")
 
     # Program tests header
     f.write("# Programs\n")
-    f.write("| Program name | " + " | ".join(stats) + "|\n")
-    f.write("|".join(["-" for _ in range(len(stats) + 1)]) + "\n")
+    f.write("| Program name | Ram size | Execution time | " + " | ".join(stats) + "|\n")
+    f.write("|".join(["-" for _ in range(len(stats) + 3)]) + "\n")
 
     # Program tests
-    for program in programs:
-        proc = open_instance()
-        success = run_program(proc, program)
+    passed_programs = run_program_tests(f, "512K")
 
-        if success:
-            results = close_instance(proc)
-            passed_programs.append(program)
-            f.write("|" + program+"|" + "|".join(results) + "|\n")
-        else:
-            kill_instance(proc)
-            f.write("|" + program+"|" + "|".join(["-" for s in stats]) + "|\n")
+    # Change ram size
+    fin = open("../root/sys161.conf.backup", "rt")
+    fout = open("../root/sys161.conf", "wt")
+    for line in fin:
+        fout.write(line.replace('31	mainboard  ramsize=512K  cpus=1', '31	mainboard  ramsize=4M  cpus=1'))
+    fin.close()
+    fout.close()
+
+    run_program_tests(f, "4M")
     f.write("\n")
 
+    # Reset ram size
+    shutil.copyfile("../root/sys161.conf.backup", "../root/sys161.conf")
 
     # Generic tests header
     f.write("# Tests\n")
