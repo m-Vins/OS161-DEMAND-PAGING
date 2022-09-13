@@ -46,7 +46,7 @@
 			 * physical memory
 			 */
 
-#define RIGHT  103126870		/* correct answer */
+#define RIGHT  141837696		/* correct answer */
 
 int A[Dim][Dim];
 int B[Dim][Dim];
