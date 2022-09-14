@@ -166,7 +166,9 @@ shutdown(void)
 #if OPT_STATS
 	vmstats_print();
 #endif
+#if OPT_SWAP
 	swap_destroy();
+#endif
 	vfs_clearbootfs();
 	vfs_clearcurdir();
 	vfs_unmountall();
