@@ -45,21 +45,9 @@ void swap_bootstrap(void)
  */
 void swap_destroy(void)
 {
-    /*
-    int err;
-    char swapfile_name[] = SWAPFILE_NAME;
-    */
-
     vfs_close(swapfile);
     bitmap_destroy(swapmap);
-
-    /*
-    err = vfs_remove(swapfile_name);
-    if (err)
-    {
-        panic("Cannot remove SWAPFILE, err %d", err);
-    }
-    */
+  
 }
 
 
@@ -160,5 +148,3 @@ void swap_free(unsigned int swap_index)
     bitmap_unmark(swapmap, swap_index);
     spinlock_release(&swaplock);
 }
-
-//TODO add swap destroy??
