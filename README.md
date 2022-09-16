@@ -253,7 +253,7 @@ Consider that the user's virtual memory space is mapped from `0x000000` to `0x80
 
 The figure below summarize the logic behind the address space and how each segments is mapped by the page table. It can even be noticed that some little empty region are still present within the used pages, because typically the first and last virtual address of the segments are not multiples of the `PAGE SIZE` , it is the **internal fragmentation**.
 
-![PageTable.drawio.png](OS161%20Project%20C1%20-%20Group%208%20d1d8a27b5526427a85c91ebe0809f77c/PageTable.drawio.png)
+![PageTable.drawio.png](images/PageTable.png)
 
 ### 5.1 - Address space structure
 
@@ -287,7 +287,7 @@ More in details, the segment has to be stored starting from the first address, u
 
 The figure below represent a segment and better clarify the role of each field.
 
-![segment.png](OS161%20Project%20C1%20-%20Group%208%20d1d8a27b5526427a85c91ebe0809f77c/segment.png)
+![segment.png](images/segment.png)
 
 It would also be useful to know the permissions for each segment, e.g., the `.text` is read-only while `.data` and `.stack` are read-write, so we can put a field for permissions in the segment structure, however since the number of segments is fixed and we also know the types, in the address space we will indicate the three segments and based on their names we can deduce the read and write permissions.
 

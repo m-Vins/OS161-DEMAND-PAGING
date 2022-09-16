@@ -3,6 +3,7 @@
 /kern/compile/
 !/kern/
 !/userland/
+!/images/
 
 /userland/*
 
