@@ -4,7 +4,7 @@
 
 This paper describes the work done by Vincenzo Mezzela, Andrea Taurino and Riccardo Tornesello regarding the project inherent the OS internals part of the System and Device Programming course at Politecnico di Torino[.](http://ww.polito.it)
 We improved **OS161** by including **Virtual Memory Management with Demand Paging and Swapping** (Cabodi project 1).
-We chose to implement a per-process page table, handling the problem of the empty virtual memory area. Writing operations on read-only pages and illegal memory accesses are other minor details that we took care of in our project.
+We chose to implement a per-process page table, handling the problem of the empty virtual memory area. Writing operations on read -only pages and illegal memory accesses are other minor details that we took care of in our project.
 
 ---
 
@@ -61,7 +61,7 @@ This algorithm can be greatly optimized in three points:
 2. The kernel finds the corresponding entry in the page table
 3. If the page is not in memory, page allocation is requested by calling `alloc_upage` and passing the page table entry
 4. The function calls `getppages` which in turn calls `coremap_getppages`.
-5. This function takes care of finding an available memory space or freeing it using swap. If no available space is found it terminates the execution of the process in case of user segment or OS for kernel segments.
+5. This function takes care of finding a free memory space or, if unavailable, freeing it using swap. If no available space is found it terminates the execution of the process when called because of a user segment or terminates the OS with panic in the case of kernel segments.
 6. Finally `coremap_getppages` inserts the pointer to the page table entry in the coremap
 
 ---
@@ -241,7 +241,7 @@ swapmap = bitmap_create(SWAPFILE_SIZE / PAGE_SIZE);
 
 Wanting to implement an efficient solution, we thought about the small optimizations.
 Upon analysis of the operation of our solution we realized that some writes to secondary memory could be avoided, for example, it is useless to swap a page that is read-only since it is already present in equal form in the ELF file.
-Since we implemented on-demand paging, the ELF file always remains open in order to read pages that have not yet been loaded into memory. So it is possible to read from the program binary file instead of reading from the SWAPFILE since there is no advantage in write speed being on the same type of memory, instead saving space in the SWAPFILE and a write when you have to swap out.
+Since we implemented on-demand paging, the ELF file always remains open in order to read pages that have not yet been loaded into memory. So it's possible to read from the program binary file instead of reading from the SWAPFILE since there is no advantage in terms of read speed because both the ELF file and the swapfile are stored in secondary memory, on the contrary it can avoid a write when swapping out, saving time, and also saves space in the SWAPFILE.
 This optimization can be enabled or disabled via the `noswap_rdonly` option in the kernel configuration.
 
 ---
@@ -257,7 +257,7 @@ The figure below summarize the logic behind the address space and how each segme
 
 ### 5.1 - Address space structure
 
-The address space structure contains data regarding the three segments and the page table. For a better modularity \*\*\*\*and readability of the code it was decided to use pointers to data structures instead of having all inside the addrspace structure.
+The address space structure contains data regarding the three segments and the page table. For a better modularity and readability of the code it was decided to use pointers to data structures instead of having all inside the addrspace structure.
 
 ```c
 struct addrspace {
@@ -281,9 +281,9 @@ struct segment {
 
 ```
 
-For each segment it is needed to store several information to locate it within the virtual address space and to load the pages from the elf file .
+For each segment it is needed to store several informations to locate it within the virtual address space and to load the pages from the elf file.
 
-More in details, the segment has to be stored starting from the first address, up to the last address. Whereas in order to load each pages correctly from the elf file it is also needed to know the offset where the segment is located in the elf file. Moreover, it is possible that the segment belongs only partially from the elf, for this reason also the size of this segment portion has to be stored in order to know whether the page has to be loaded from the elf or it is enough to allocate and zero fill it.
+More in details, the segment has to be stored starting from the first address, up to the last address. Whereas in order to load each page correctly from the elf file it is also needed to know the offset where the segment is located in the elf file. Moreover, it is possible that the segment belongs only partially to the elf, for this reason also the size of this segment portion has to be stored in order to know whether the page has to be loaded from the elf or it is enough to allocate and zero fill it.
 
 The figure below represent a segment and better clarify the role of each field.
 
@@ -309,7 +309,7 @@ struct pt_entry
 
 The page table is useful in case of TLB misses to find the physical address corresponding to the virtual address that caused the fault (the algorithm for finding the entry in the page table was described earlier) as well as finding the frame within the SWAPFILE.
 
-Now some calculations: as mentioned above, only 20 bits are needed to index a frame and 12 (best size for 9MB SWAPFILE) to index a page in the SWAPFILE, so these will be the sizes of the relevant fields to indicate the location of the page in physical memory or in the SWAP. 20 bits + 12 bits = 32 bits, would seem to be the perfect and optimal size for a struct, however we chose to add an additional 2-bit field to indicate the state of the page, which may be `IN_MEMORY`, `IN_SWAP`, or `NOT_LOADED` (Only later another state `IN_MEMORY_RDONLY` has been added for optimization purposes).
+Now some calculations: as mentioned above, only 20 bits are needed to index a frame and 12 (best size for 9MB SWAPFILE) to index a page in the SWAPFILE, so these will be the sizes of the relevant fields to indicate the location of the page in physical memory or in the SWAP. 20 bits + 12 bits = 32 bits, would seem to be the perfect and optimal size for a struct, however we chose to add an additional 2-bit field to indicate the state of the page, which may be `IN_MEMORY`, `IN_SWAP`, or `NOT_LOADED` (Only later another state `IN_MEMORY_RDONLY` has been added for in order to avoid writing in the swap file the pages that are read-only and retrievable from the ELF file as we described before).
 Originally we thought we would find the state of the page by reading the previous two fields:
 
 - $frame\_index \neq 0 \wedge swap\_index = 0 : memory$
@@ -320,7 +320,7 @@ This would have created bugs since the indexes are in base 0 and so this value s
 
 A similar but workable solution would have been possible using upper bound values, not for the frame index since even 2^20-1 may be an acceptable value, but knowing that not all swap indexes would be used. This solution, however workable, is inconvenient since it would create problems in case of future updates, such as increasing the size of the SWAPFILE.
 The other solution that was considered was to have a field for the state and a field of `max(12,20)` bits for the index. Depending on the state (in memory or in swap) that index would indicate the index of the frame in memory or the page in the SWAPFILE.
-At the end of all these considerations, it was felt that the best solution, for simplicity of the code and because the memory savings would be minimal, is to add a third field for status.
+At the end of all these considerations, it was felt that the best solution, for simplicity of the code and because the memory savings would be minimal, was to add a third field for status.
 
 ### 5.4 - How to get the page table index from the virtual address?
 
