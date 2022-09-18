@@ -1,5 +1,36 @@
 # OS161 Project C1 - Group 8
 
+## Index
+
+1. [Introduction](#1---introduction)
+2. [Paging](#2---paging)
+	1. [Coremap](#21---coremap-structure)
+	2. [Page allocation](#22---page-allocation)
+	3. [User page allocation fLow](#23---user-page-allocation-flow)
+3. [On demand page load](#3---on-demand-page-load)
+	1. [Leaving the ELF file open](#31---leaving-the-elf-file-open)
+	2. [Save the ELF file vnode](#32---save-the-elf-file-vnode)
+	3. [Page loading](#33---page-loading)
+4. [SWAP](#4---swap)
+	1. [SWAP optimization](#41---swap-optimization)
+5. [Address space](#5---address-space)
+	1. [Address space structure](#51---address-space-structure)
+	2. [Segment structure](#52---segment-structure)
+	3. [Page loading](#33---page-loading)
+6. [VM Fault](#6---vm-fault)
+	1. [Write on read-only page](#61---write-on-read-only-page)
+	2. [Read/Write type faults](#62---readwrite-type-faults)
+7. [Statistics](#7---statistics)
+	1. [Statistics triggers](#71---statistics-triggers)
+8. [Tests](#8---tests)
+	1. [User programs](#81---user-programs)
+	2. [Kernel tests](#82---kernel-tests)
+	3. [Stress test](#82---kernel-tests)
+9. [Work division](#9---work-division)
+10. [Possible improvements](#10---possible-improvements)
+11. [Conclusion](#11---conclusion)
+
+
 ## 1 - Introduction
 
 This paper describes the work done by Vincenzo Mezzela, Andrea Taurino and Riccardo Tornesello regarding the project inherent the OS internals part of the System and Device Programming course at Politecnico di Torino[.](http://ww.polito.it)
