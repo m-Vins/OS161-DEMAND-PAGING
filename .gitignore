@@ -16,5 +16,6 @@ userland/testbin/*
 !/userland/testbin/hugematmult2/
 
 !.gitignore
+!OS161_Project_C1_Group8.pdf
 
 !execute_tests.py

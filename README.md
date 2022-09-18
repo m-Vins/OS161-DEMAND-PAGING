@@ -33,7 +33,7 @@
 
 ## 1 - Introduction
 
-This paper describes the work done by Vincenzo Mezzela, Andrea Taurino and Riccardo Tornesello regarding the project inherent the OS internals part of the System and Device Programming course at Politecnico di Torino[.](http://ww.polito.it)
+This paper describes the work done by Vincenzo Mezzela, Andrea Taurino and Riccardo Tornesello regarding the project inherent the OS internals part of the System and Device Programming course at [Politecnico di Torino](http://www.polito.it).
 We improved **OS161** by including **Virtual Memory Management with Demand Paging and Swapping** (Cabodi project 1).
 We chose to implement a per-process page table, handling the problem of the empty virtual memory area. Writing operations on read-only pages and illegal memory accesses are other minor details that we took care of in our project.
 
@@ -283,7 +283,7 @@ Consider that the user's virtual memory space is mapped from `0x000000` to `0x80
 
 The figure below summarize the logic behind the address space and how each segments is mapped by the page table. It can even be noticed that some little empty region are still present within the used pages, because typically the first and last virtual address of the segments are not multiples of the `PAGE SIZE` , it is the **internal fragmentation**.
 
-![PageTable.drawio.png](OS161%20Project%20C1%20-%20Group%208%20d1d8a27b5526427a85c91ebe0809f77c/PageTable.drawio.png)
+![PageTable](images/PageTable.png)
 
 ### 5.1 - Address space structure
 
@@ -317,7 +317,7 @@ More in details, the segment has to be stored starting from the first address, u
 
 The figure below represent a segment and better clarify the role of each field.
 
-![segment.png](OS161%20Project%20C1%20-%20Group%208%20d1d8a27b5526427a85c91ebe0809f77c/segment.png)
+![segment.png](images/segment.png)
 
 It would also be useful to know the permissions for each segment, e.g., the `.text` is read-only while `.data` and `.stack` are read-write, so we can put a field for permissions in the segment structure, however since the number of segments is fixed and we also know the types, in the address space we will indicate the three segments and based on their names we can deduce the read and write permissions.
 
@@ -570,7 +570,7 @@ The function `vmstats_print` was also created to show the results when the opera
 - TLB Fault with Replace: on `tlb_insert` in the opposite case to the previous one
 - TLB Invalidation: on `tlb_invalidate`, after an `as_activate`
 - TLB Reload: on `vm_fault` if the page is already in memory (state `IN_MEMORY`)
-- Page Fault (Zeroed): whether the address belongs to a never-loaded (`NOT_LOADED`) page of type SWAP or not present in the ELF file
+- Page Fault (Zeroed): whether the address belongs to a never-loaded (`NOT_LOADED`) page of type stack or not present in the ELF file
 - Page Fault (Disk): the page is either `NOT_LOADED` and saved in the ELF or has been previously swapped out (`IN_SWAP`)
 - Page Fault from ELF: on `as_load_page` when the page is in the ELF file and has to be loaded in memory
 - Page Fault from Swapfile: on `swap_in`
