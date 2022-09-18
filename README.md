@@ -4,38 +4,38 @@
 
 1. [Introduction](#1---introduction)
 2. [Paging](#2---paging)
-	1. [Coremap](#21---coremap-structure)
-	2. [Page allocation](#22---page-allocation)
-	3. [User page allocation fLow](#23---user-page-allocation-flow)
+   1. [Coremap](#21---coremap-structure)
+   2. [Page allocation](#22---page-allocation)
+   3. [User page allocation fLow](#23---user-page-allocation-flow)
 3. [On demand page load](#3---on-demand-page-load)
-	1. [Leaving the ELF file open](#31---leaving-the-elf-file-open)
-	2. [Save the ELF file vnode](#32---save-the-elf-file-vnode)
-	3. [Page loading](#33---page-loading)
+   1. [Leaving the ELF file open](#31---leaving-the-elf-file-open)
+   2. [Save the ELF file vnode](#32---save-the-elf-file-vnode)
+   3. [Page loading](#33---page-loading)
 4. [SWAP](#4---swap)
-	1. [SWAP optimization](#41---swap-optimization)
+   1. [SWAP optimization](#41---swap-optimization)
 5. [Address space](#5---address-space)
-	1. [Address space structure](#51---address-space-structure)
-	2. [Segment structure](#52---segment-structure)
-	3. [Page loading](#33---page-loading)
+   1. [Address space structure](#51---address-space-structure)
+   2. [Segment structure](#52---segment-structure)
+   3. [Page loading](#33---page-loading)
 6. [VM Fault](#6---vm-fault)
-	1. [Write on read-only page](#61---write-on-read-only-page)
-	2. [Read/Write type faults](#62---readwrite-type-faults)
+   1. [Write on read-only page](#61---write-on-read-only-page)
+   2. [Read/Write type faults](#62---readwrite-type-faults)
 7. [Statistics](#7---statistics)
-	1. [Statistics triggers](#71---statistics-triggers)
-8. [Tests](#8---tests)
-	1. [User programs](#81---user-programs)
-	2. [Kernel tests](#82---kernel-tests)
-	3. [Stress test](#82---kernel-tests)
-9. [Work division](#9---work-division)
-10. [Possible improvements](#10---possible-improvements)
-11. [Conclusion](#11---conclusion)
-
+   1. [Statistics triggers](#71---statistics-triggers)
+8. [Configuration](#8---configuration)
+9. [Tests](#9---tests)
+   1. [User programs](#91---user-programs)
+   2. [Kernel tests](#92---kernel-tests)
+   3. [Stress test](#92---kernel-tests)
+10. [Work division](#10---work-division)
+11. [Possible improvements](#11---possible-improvements)
+12. [Conclusion](#12---conclusion)
 
 ## 1 - Introduction
 
 This paper describes the work done by Vincenzo Mezzela, Andrea Taurino and Riccardo Tornesello regarding the project inherent the OS internals part of the System and Device Programming course at Politecnico di Torino[.](http://ww.polito.it)
 We improved **OS161** by including **Virtual Memory Management with Demand Paging and Swapping** (Cabodi project 1).
-We chose to implement a per-process page table, handling the problem of the empty virtual memory area. Writing operations on read -only pages and illegal memory accesses are other minor details that we took care of in our project.
+We chose to implement a per-process page table, handling the problem of the empty virtual memory area. Writing operations on read-only pages and illegal memory accesses are other minor details that we took care of in our project.
 
 ---
 
@@ -92,8 +92,8 @@ This algorithm can be greatly optimized in three points:
 2. The kernel finds the corresponding entry in the page table
 3. If the page is not in memory, page allocation is requested by calling `alloc_upage` and passing the page table entry
 4. The function calls `getppages` which in turn calls `coremap_getppages`.
-5. This function takes care of finding a free memory space or, if unavailable, freeing it using swap. If no available space is found it terminates the execution of the process when called because of a user segment or terminates the OS with panic in the case of kernel segments.
-6. Finally `coremap_getppages` inserts the pointer to the page table entry in the coremap
+5. This function takes care of finding a free memory space or, if unavailable, freeing it using swap. If no available space is found the OS161 kernel calls panic(”Out of swap space”) and terminates the execution.
+6. Finally `coremap_getppages` inserts the pointer to the page table entry in the coremap .
 
 ---
 
@@ -176,10 +176,8 @@ Program Headers:
 
 > We struggled for days with a problem in program execution where the fault address was found to be 0, which is impossible.
 > We discovered at that time that we had mistakenly loaded the program into memory for two reasons:
-
-1. we erroneously thought that the size of the segment in memory was equal to the size `FileSiz`of the segment in the ELF file. Instead it was `MemSiz`.
-2. we thought that the first virtual address of a segment was page-aligned.
-   >
+> 1 ) we erroneously thought that the size of the segment in memory was equal to the size `FileSiz`of the segment in the ELF file. Instead it was `MemSiz`.
+> 2 ) we thought that the first virtual address of a segment was page-aligned.
 
 In order to take into account all these issues we decided to create a new function `as_load_page` that acts as a wrapper for the function `load_page` and computes the `offset` and `size` parameters in the correct way.
 
@@ -272,6 +270,7 @@ swapmap = bitmap_create(SWAPFILE_SIZE / PAGE_SIZE);
 
 Wanting to implement an efficient solution, we thought about the small optimizations.
 Upon analysis of the operation of our solution we realized that some writes to secondary memory could be avoided, for example, it is useless to swap a page that is read-only since it is already present in equal form in the ELF file.
+
 Since we implemented on-demand paging, the ELF file always remains open in order to read pages that have not yet been loaded into memory. So it's possible to read from the program binary file instead of reading from the SWAPFILE since there is no advantage in terms of read speed because both the ELF file and the swapfile are stored in secondary memory, on the contrary it can avoid a write when swapping out, saving time, and also saves space in the SWAPFILE.
 This optimization can be enabled or disabled via the `noswap_rdonly` option in the kernel configuration.
 
@@ -284,11 +283,11 @@ Consider that the user's virtual memory space is mapped from `0x000000` to `0x80
 
 The figure below summarize the logic behind the address space and how each segments is mapped by the page table. It can even be noticed that some little empty region are still present within the used pages, because typically the first and last virtual address of the segments are not multiples of the `PAGE SIZE` , it is the **internal fragmentation**.
 
-![PageTable.drawio.png](images/PageTable.png)
+![PageTable.drawio.png](OS161%20Project%20C1%20-%20Group%208%20d1d8a27b5526427a85c91ebe0809f77c/PageTable.drawio.png)
 
 ### 5.1 - Address space structure
 
-The address space structure contains data regarding the three segments and the page table. For a better modularity and readability of the code it was decided to use pointers to data structures instead of having all inside the addrspace structure.
+The address space structure contains data regarding the three segments and the page table. For a better modularity \*\*\*\*and readability of the code it was decided to use pointers to data structures instead of having all inside the addrspace structure.
 
 ```c
 struct addrspace {
@@ -312,13 +311,13 @@ struct segment {
 
 ```
 
-For each segment it is needed to store several informations to locate it within the virtual address space and to load the pages from the elf file.
+For each segment it is needed to store several informations to locate it within the virtual address space and to load the pages from the elf file .
 
-More in details, the segment has to be stored starting from the first address, up to the last address. Whereas in order to load each page correctly from the elf file it is also needed to know the offset where the segment is located in the elf file. Moreover, it is possible that the segment belongs only partially to the elf, for this reason also the size of this segment portion has to be stored in order to know whether the page has to be loaded from the elf or it is enough to allocate and zero fill it.
+More in details, the segment has to be stored starting from the first address, up to the last address. Whereas in order to load each pages correctly from the elf file it is also needed to know the offset where the segment is located in the elf file. Moreover, it is possible that the segment belongs only partially to the elf, for this reason also the size of this segment portion has to be stored in order to know whether the page has to be loaded from the elf or it is enough to allocate and zero fill it.
 
 The figure below represent a segment and better clarify the role of each field.
 
-![segment.png](images/segment.png)
+![segment.png](OS161%20Project%20C1%20-%20Group%208%20d1d8a27b5526427a85c91ebe0809f77c/segment.png)
 
 It would also be useful to know the permissions for each segment, e.g., the `.text` is read-only while `.data` and `.stack` are read-write, so we can put a field for permissions in the segment structure, however since the number of segments is fixed and we also know the types, in the address space we will indicate the three segments and based on their names we can deduce the read and write permissions.
 
@@ -340,7 +339,7 @@ struct pt_entry
 
 The page table is useful in case of TLB misses to find the physical address corresponding to the virtual address that caused the fault (the algorithm for finding the entry in the page table was described earlier) as well as finding the frame within the SWAPFILE.
 
-Now some calculations: as mentioned above, only 20 bits are needed to index a frame and 12 (best size for 9MB SWAPFILE) to index a page in the SWAPFILE, so these will be the sizes of the relevant fields to indicate the location of the page in physical memory or in the SWAP. 20 bits + 12 bits = 32 bits, would seem to be the perfect and optimal size for a struct, however we chose to add an additional 2-bit field to indicate the state of the page, which may be `IN_MEMORY`, `IN_SWAP`, or `NOT_LOADED` (Only later another state `IN_MEMORY_RDONLY` has been added for in order to avoid writing in the swap file the pages that are read-only and retrievable from the ELF file as we described before).
+Now some calculations: as mentioned above, only 20 bits are needed to index a frame and 12 (best size for 9MB SWAPFILE) to index a page in the SWAPFILE, so these will be the sizes of the relevant fields to indicate the location of the page in physical memory or in the SWAP. 20 bits + 12 bits = 32 bits, would seem to be the perfect and optimal size for a struct, however we chose to add an additional 2-bit field to indicate the state of the page, which may be `IN_MEMORY`, `IN_SWAP`, or `NOT_LOADED` (Only later another state `IN_MEMORY_RDONLY` has been added in order to avoid writing in the swap file the pages that are read-only and retrievable from the ELF file as we described before).
 Originally we thought we would find the state of the page by reading the previous two fields:
 
 - $frame\_index \neq 0 \wedge swap\_index = 0 : memory$
@@ -579,7 +578,23 @@ The function `vmstats_print` was also created to show the results when the opera
 
 ---
 
-## 8 - Tests
+## 8 - Configuration
+
+We have created a modular kernel so that the features we implemented can be turned on or off using the following configuration options:
+
+- `syscalls` and `waitpid` options add basic functionalities, it is required to enable them for a proper operation of the kernel.
+
+- `rudevm` enables the new memory management system and other important features such as TLB management, per process page table and demand paging.
+
+- `swap` enables the swap functionality, it is optional but very useful.
+
+- `stats` is also optional and enables the statistics functionality.
+
+- `noswap_rdonly` enables the swap optimization described at point 4.1 of this report.
+
+---
+
+## 9 - Tests
 
 The test suite we used is as follows:
 
@@ -603,37 +618,37 @@ We also created the following tests:
 
 Then we created a script (`execute_tests.py`) to automatically execute all the user test scripts and obtain execution time and statistic results, even in different ram size conditions. It also performs a long stability test by executing all the tests many times. The results are automatically stored in a markdown file (`testresults.md`), the results are reported below.
 
-### 8.1 - User programs
+### 9.1 - User programs
 
-| RAM: 512K                 | palin  | huge   | sort   | matmult | matmult1 | matmult2 | ctest  |
-| ------------------------- | ------ | ------ | ------ | ------- | -------- | -------- | ------ |
-| Execution time            | 15.541 | 39.080 | 20.864 | 7.4875  | 56.832   | -        | 1464.0 |
-| TLB Faults                | 13986  | 7458   | 6720   | 4341    | 64464    | -        | 248545 |
-| TLB Faults with Free      | 13986  | 7439   | 6578   | 4319    | 64446    | -        | 248530 |
-| TLB Faults with Replace   | 0      | 19     | 142    | 22      | 18       | -        | 15     |
-| TLB Invalidations         | 7824   | 6697   | 2979   | 1218    | 8771     | -        | 247943 |
-| TLB Reloads               | 13981  | 3879   | 5055   | 3533    | 58866    | -        | 123624 |
-| Page Faults (Zeroed)      | 1      | 512    | 289    | 380     | 2350     | -        | 257    |
-| Page Faults (Disk)        | 4      | 3067   | 1376   | 428     | 3248     | -        | 124664 |
-| Page Faults from ELF      | 4      | 58     | 25     | 13      | 78       | -        | 1605   |
-| Page Faults from Swapfile | 0      | 3009   | 1351   | 415     | 3170     | -        | 123059 |
-| Swapfile Writes           | 0      | 0      | 0      | 0       | 3759     | 5043     | 0      |
+| RAM: 512K                 | palin  | huge   | sort   | matmult | hugematmult1 | hugematmult2 | ctest  |
+| ------------------------- | ------ | ------ | ------ | ------- | ------------ | ------------ | ------ |
+| Execution time            | 15.541 | 39.080 | 20.864 | 7.4875  | 56.832       | -            | 1464.0 |
+| TLB Faults                | 13986  | 7458   | 6720   | 4341    | 64464        | -            | 248545 |
+| TLB Faults with Free      | 13986  | 7439   | 6578   | 4319    | 64446        | -            | 248530 |
+| TLB Faults with Replace   | 0      | 19     | 142    | 22      | 18           | -            | 15     |
+| TLB Invalidations         | 7824   | 6697   | 2979   | 1218    | 8771         | -            | 247943 |
+| TLB Reloads               | 13981  | 3879   | 5055   | 3533    | 58866        | -            | 123624 |
+| Page Faults (Zeroed)      | 1      | 512    | 289    | 380     | 2350         | -            | 257    |
+| Page Faults (Disk)        | 4      | 3067   | 1376   | 428     | 3248         | -            | 124664 |
+| Page Faults from ELF      | 4      | 58     | 25     | 13      | 78           | -            | 1605   |
+| Page Faults from Swapfile | 0      | 3009   | 1351   | 415     | 3170         | -            | 123059 |
+| Swapfile Writes           | 0      | 3451   | 1567   | 721     | 5450         | -            | 123242 |
 
-| RAM: 4M                   | palin  | huge   | sort   | matmult | matmult1 | matmult2 | ctest  |
-| ------------------------- | ------ | ------ | ------ | ------- | -------- | -------- | ------ |
-| Execution time            | 15.487 | 0.9164 | 3.4657 | 0.6779  | 42.957   | 56.902   | 7.3881 |
-| TLB Faults                | 13897  | 4002   | 2008   | 947     | 38331    | 60192    | 125333 |
-| TLB Faults with Free      | 13897  | 778    | 122    | 191     | 37010    | 58785    | 151    |
-| TLB Faults with Replace   | 0      | 3224   | 1886   | 756     | 1321     | 1407     | 125182 |
-| TLB Invalidations         | 7797   | 182    | 40     | 72      | 6213     | 8154     | 40     |
-| TLB Reloads               | 13892  | 3487   | 1715   | 564     | 33600    | 54176    | 125073 |
-| Page Faults (Zeroed)      | 1      | 512    | 289    | 380     | 2350     | 2977     | 257    |
-| Page Faults (Disk)        | 4      | 3      | 4      | 3       | 2381     | 3039     | 3      |
-| Page Faults from ELF      | 4      | 3      | 4      | 3       | 7        | 9        | 3      |
-| Page Faults from Swapfile | 0      | 0      | 0      | 0       | 2374     | 3030     | 0      |
-| Swapfile Writes           | 0      | 3451   | 1567   | 721     | 5450     | -        | 123242 |
+| RAM: 4M                   | palin  | huge   | sort   | matmult | hugematmult1 | hugematmult2 | ctest  |
+| ------------------------- | ------ | ------ | ------ | ------- | ------------ | ------------ | ------ |
+| Execution time            | 15.487 | 0.9164 | 3.4657 | 0.6779  | 42.957       | 56.902       | 7.3881 |
+| TLB Faults                | 13897  | 4002   | 2008   | 947     | 38331        | 60192        | 125333 |
+| TLB Faults with Free      | 13897  | 778    | 122    | 191     | 37010        | 58785        | 151    |
+| TLB Faults with Replace   | 0      | 3224   | 1886   | 756     | 1321         | 1407         | 125182 |
+| TLB Invalidations         | 7797   | 182    | 40     | 72      | 6213         | 8154         | 40     |
+| TLB Reloads               | 13892  | 3487   | 1715   | 564     | 33600        | 54176        | 125073 |
+| Page Faults (Zeroed)      | 1      | 512    | 289    | 380     | 2350         | 2977         | 257    |
+| Page Faults (Disk)        | 4      | 3      | 4      | 3       | 2381         | 3039         | 3      |
+| Page Faults from ELF      | 4      | 3      | 4      | 3       | 7            | 9            | 3      |
+| Page Faults from Swapfile | 0      | 0      | 0      | 0       | 2374         | 3030         | 0      |
+| Swapfile Writes           | 0      | 0      | 0      | 0       | 3759         | 5043         | 0      |
 
-### 8.2 - Kernel tests
+### 9.2 - Kernel tests
 
 | Test name | Passed |
 | --------- | ------ |
@@ -644,7 +659,7 @@ Then we created a script (`execute_tests.py`) to automatically execute all the u
 | km2       | True   |
 | km3 1000  | True   |
 
-### 8.3 - Stress test
+### 9.3 - Stress test
 
 | TLB Faults | TLB Faults with Free | TLB Faults with Replace | TLB Invalidations | TLB Reloads | Page Faults (Zeroed) | Page Faults (Disk) | Page Faults from ELF | Page Faults from Swapfile | Swapfile Writes |
 | ---------- | -------------------- | ----------------------- | ----------------- | ----------- | -------------------- | ------------------ | -------------------- | ------------------------- | --------------- |
@@ -652,7 +667,7 @@ Then we created a script (`execute_tests.py`) to automatically execute all the u
 
 ---
 
-## 9 - Work division
+## 10 - Work division
 
 Organizing the work in such a complex project, in which all components collaborate with each other, can be difficult.
 We decided to proceed with an initial study phase in parallel and then discuss together all the ideas, concerns, and possible implementation strategies.
@@ -666,7 +681,7 @@ The last phase was optimization and troubleshooting, for example at the end of t
 
 ---
 
-## 10 - Possible improvements
+## 11 - Possible improvements
 
 The project still leaves room for several improvements as it has a very basic virtual memory solution.
 
@@ -678,7 +693,7 @@ Finding free frames within the coremap has a linear complexity, using a support 
 
 ---
 
-## 11 - Conclusion
+## 12 - Conclusion
 
 Implementing this project was an interesting challenge: our OS161 knowledge deepened as facing with the many decisions and issues the project led us to.
 
