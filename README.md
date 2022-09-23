@@ -16,7 +16,8 @@
 5. [Address space](#5---address-space)
    1. [Address space structure](#51---address-space-structure)
    2. [Segment structure](#52---segment-structure)
-   3. [Page loading](#33---page-loading)
+   3. [Page table structure](#53---page-table-structure)
+   4. [How to get the page table index from the virtual address](#54---how-to-get-the-page-table-index-from-the-virtual-address)
 6. [VM Fault](#6---vm-fault)
    1. [Write on read-only page](#61---write-on-read-only-page)
    2. [Read/Write type faults](#62---readwrite-type-faults)
@@ -439,8 +440,8 @@ int vm_fault(int faulttype, vaddr_t faultaddress){
 switch (faulttype)
 	{
  	    case VM_FAULT_READONLY:
-			**kprintf("vm: got VM_FAULT_READONLY, process killed\n");
-			sys__exit(-1);**
+			kprintf("vm: got VM_FAULT_READONLY, process killed\n");
+			sys__exit(-1);
 			return 0;
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
